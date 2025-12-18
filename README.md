@@ -2,8 +2,8 @@
 
 An intelligent web application that generates personalized travel itineraries using Google Gemini AI.
 
-**Author:** Raghad Alwazir  
-**University:** University of Greater Manchester - Bolton  
+**Author:** Harish R
+**University:** Madurai kamaraj University - NMSSVN College, Madurai
 **Project:** Final Year Graduation Project
 
 ## Features
@@ -82,11 +82,10 @@ src/
 ## Contributing
 
 This is an academic project. For questions or collaboration:
-- Email: [Alwazirraghad@gmail.com]
+- Email: [harishyuvan8870@gmail.com]
 
 ## Acknowledgments
 
-- University of Greater Manchester - Bolton
 - Google Cloud Platform for AI services
 - Firebase for backend infrastructure
 - React community for excellent tools
