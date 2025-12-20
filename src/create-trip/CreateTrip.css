@@ -7,6 +7,17 @@
   flex-direction: column;
   gap: 1.5rem;
 }
+/* ---------------------- Banner Image ---------------------- */
+.trip-container img {
+  width: 100%;           /* full width of container */
+  height: auto;          /* maintain aspect ratio */
+  max-height: none;      /* remove cropping */
+  border-radius: 12px;   /* rounded corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  object-fit: contain;   /* ensures entire image fits inside container */
+  margin-bottom: 1rem;
+}
+
 
 /* ---------------------- Option Cards ---------------------- */
 .options-wrapper {

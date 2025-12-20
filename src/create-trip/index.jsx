@@ -127,8 +127,7 @@ export default function CreateTrip() {
   const saveTrip = async (tripDataObj) => {
     try {
       const payload = {
-        // Anonymous trip: no user_id
-        user_selection: formData, // full object including lat/lon
+        user_selection: formData,
         trip_data: tripDataObj
       };
 
@@ -215,7 +214,14 @@ export default function CreateTrip() {
         subMessage={loadingSubMessage}
       />
 
-      <h1>Share your travel preferences 🗺️</h1>
+      {/* ===== IMAGE ADDED AT THE TOP ===== */}
+      <img
+        src="/image.png"
+        alt="Travel Banner"
+        className="w-full h-auto mb-4 rounded-md shadow-md object-cover max-h-64"
+      />
+
+      <h1 className="text-2xl font-semibold mb-4">Share your travel preferences 🗺️</h1>
 
       <OSMAutocomplete
         value={formData.location?.label || ''}
@@ -252,7 +258,7 @@ export default function CreateTrip() {
         {renderOptionCards(SelectTravelesList, formData.traveler, "traveler")}
       </div>
 
-      <Button onClick={OnGenerateTrip} className="generate-trip-btn">
+      <Button onClick={OnGenerateTrip} className="generate-trip-btn mt-4">
         ✨ Generate My Trip
       </Button>
     </div>
