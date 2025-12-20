@@ -94,7 +94,7 @@ const OSMAutocomplete = ({ value, onChange }) => {
 };
 
 export default function CreateTrip() {
-  const navigate = useNavigate(); // <-- useNavigate hook
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     location: null,
     noOfDays: '',
@@ -125,33 +125,31 @@ export default function CreateTrip() {
   };
 
   const saveTrip = async (tripDataObj) => {
-    const payload = {
-      user_id: null,
-      user_email: "guest",
-      user_selection: {
-        location: formData.location?.label,
-        noOfDays: Number(formData.noOfDays),
-        budget: formData.budget,
-        traveler: formData.traveler
-      },
-      trip_data: tripDataObj
-    };
+    try {
+      const payload = {
+        // Anonymous trip: no user_id
+        user_selection: formData, // full object including lat/lon
+        trip_data: tripDataObj
+      };
 
-    const { data, error } = await supabase
-      .from("AITrips")
-      .insert(payload)
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from("AITrips")
+        .insert(payload)
+        .select()
+        .single();
 
-    if (error) {
-      console.error("❌ Supabase Insert Error:", error);
-      toast.error(error.message || "Failed to save trip");
-      return;
+      if (error) {
+        console.error("Supabase Insert Error:", error);
+        toast.error(error.message || "Failed to save trip");
+        return;
+      }
+
+      toast.success("🎉 Trip created successfully!");
+      navigate(`/view-trip/${data.id}`);
+    } catch (err) {
+      console.error("Save Trip Error:", err);
+      toast.error("Failed to save trip");
     }
-
-    toast.success("🎉 Trip created successfully!");
-    // SPA-friendly navigation using useNavigate
-    navigate(`/view-trip/${data.id}`);
   };
 
   const OnGenerateTrip = async () => {
