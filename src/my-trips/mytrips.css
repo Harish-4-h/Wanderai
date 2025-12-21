@@ -1,0 +1,90 @@
+.my-trips-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.my-trips-container h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 24px;
+}
+
+
+
+.trips-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .trips-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.trip-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.trip-card img {
+  width: 100%;
+  height: 12rem;
+  object-fit: cover;
+}
+
+.trip-card .no-image {
+  width: 100%;
+  height: 12rem;
+  background-color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #718096;
+  font-size: 0.875rem;
+}
+
+.trip-card .trip-info {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trip-card .trip-info h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.trip-card .trip-info p {
+  font-size: 0.875rem;
+  color: #4a5568;
+}
+
+.trip-card .trip-info .created-date {
+  color: #a0aec0;
+  font-size: 0.75rem;
+}
+
+.trip-card .delete-button {
+  margin-top: 12px;
+  width: 100%;
+  background-color: #f56565;
+  color: #fff;
+  border: none;
+  padding: 8px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.trip-card .delete-button:hover {
+  background-color: #e53e3e;
+}

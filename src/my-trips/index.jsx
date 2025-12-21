@@ -3,6 +3,7 @@ import { supabase } from "@/service/supabaseClient";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
+
 export default function MyTrips() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(false);

@@ -8,7 +8,6 @@ import 'leaflet/dist/leaflet.css';
 import './index.css';
 import { Button } from './components/ui/button.jsx';
 
-
 // Custom Components
 import Hero from './components/custom/Hero';
 import SVGAnimation from './components/custom/SVGAnimation';
@@ -41,11 +40,29 @@ export default function Home() {
         .limit(5);
 
       if (error) throw error;
-      setTrips(data || []);
 
-      data.forEach((trip) => {
-        const locName = trip.user_selection.location?.label;
-        if (locName && !locationsCache[locName]) geocodeLocation(locName);
+      // Parse user_selection JSON strings
+      const parsedTrips = data.map((trip) => ({
+        ...trip,
+        user_selection:
+          typeof trip.user_selection === 'string'
+            ? JSON.parse(trip.user_selection)
+            : trip.user_selection,
+      }));
+
+      setTrips(parsedTrips);
+
+      // Fetch coordinates for all unique locations
+      const uniqueLocations = [
+        ...new Set(
+          parsedTrips
+            .map((t) => t.user_selection.location?.label)
+            .filter(Boolean)
+        ),
+      ];
+
+      uniqueLocations.forEach((loc) => {
+        if (!locationsCache[loc]) geocodeLocation(loc);
       });
     } catch (err) {
       console.error(err);
@@ -80,19 +97,21 @@ export default function Home() {
       <h2 className="text-2xl font-bold mt-10 mb-4">Recent Trips 🌎</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {trips.map((trip) => {
-          const coords = locationsCache[trip.user_selection.location?.label];
+          const userSelection = trip.user_selection;
+          const coords = locationsCache[userSelection.location?.label];
+
           return (
             <div
               key={trip.id}
               className="border rounded-xl p-4 shadow hover:shadow-lg transition cursor-pointer"
             >
               <h3 className="font-semibold">
-                {trip.user_selection.location?.label || 'Unknown'}
+                {userSelection.location?.label || 'Unknown'}
               </h3>
               <p className="text-sm text-gray-500 mt-1">
-                {trip.user_selection.noOfDays} days • {trip.user_selection.budget}
+                {userSelection.noOfDays || '—'} days • {userSelection.budget || '—'}
               </p>
-              <p className="text-sm text-gray-500">{trip.user_selection.traveler}</p>
+              <p className="text-sm text-gray-500">{userSelection.traveler || '—'}</p>
 
               {coords && (
                 <div
@@ -119,7 +138,7 @@ export default function Home() {
                       attribution="&copy; OpenStreetMap contributors"
                     />
                     <Marker position={coords}>
-                      <Popup>{trip.user_selection.location.label}</Popup>
+                      <Popup>{userSelection.location.label}</Popup>
                     </Marker>
                   </MapContainer>
                 </div>
@@ -140,5 +159,4 @@ export default function Home() {
       </div>
     </div>
   );
-  
 }

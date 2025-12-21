@@ -126,10 +126,7 @@ export default function CreateTrip() {
 
   const saveTrip = async (tripDataObj) => {
     try {
-      const payload = {
-        user_selection: formData,
-        trip_data: tripDataObj
-      };
+      const payload = { user_selection: formData, trip_data: tripDataObj };
 
       const { data, error } = await supabase
         .from("AITrips")
@@ -170,7 +167,7 @@ export default function CreateTrip() {
         formData.budget
       );
 
-      if (result?.itinerary?.length > 0) {
+      if (result?.days?.length > 0) {
         await saveTrip(result);
       } else {
         toast.error("No itinerary generated. Try again!");
@@ -214,7 +211,6 @@ export default function CreateTrip() {
         subMessage={loadingSubMessage}
       />
 
-      {/* ===== IMAGE ADDED AT THE TOP ===== */}
       <img
         src="/image.png"
         alt="Travel Banner"

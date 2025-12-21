@@ -22,6 +22,8 @@ L.Icon.Default.mergeOptions({
     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_GEOCODE_KEY;
+
 function ViewTrip() {
   const { tripId } = useParams();
   const [tripData, setTripData] = useState(null);
@@ -49,20 +51,30 @@ function ViewTrip() {
 
       setTripData(data);
 
-      // Parse itinerary
+      // Parse itinerary safely
+      let parsedItinerary = [];
       if (data.trip_data) {
         try {
           const parsedData =
-            typeof data.trip_data === 'string'
-              ? JSON.parse(data.trip_data)
-              : data.trip_data;
-          setItinerary(parsedData.itinerary || []);
+            typeof data.trip_data === 'string' ? JSON.parse(data.trip_data) : data.trip_data;
+
+          if (Array.isArray(parsedData.days)) {
+            parsedItinerary = parsedData.days.map((day) => ({
+              day: day.day,
+              plan: day.places?.map((p) => ({
+                placeName: p.name || p.placeName,
+                placeDetails: p.about,
+                timeToTravel: p.time,
+              })) || [],
+            }));
+          }
         } catch (err) {
           console.error('Error parsing itinerary:', err);
         }
       }
+      setItinerary(parsedItinerary);
 
-      // Map markers
+      // Prepare locations for map markers
       const allLocations = [];
       if (data.user_selection?.location?.label) {
         allLocations.push({ query: data.user_selection.location.label, type: 'main' });
@@ -77,8 +89,9 @@ function ViewTrip() {
           allLocations.push({ query: place.placeName || place.name, type: 'place' })
         );
       }
+
       for (const loc of allLocations) {
-        await geocodeLocation(loc.query, loc.type);
+        await geocodeLocationGeoapify(loc.query, loc.type);
       }
     } catch (err) {
       console.error('Error fetching trip:', err);
@@ -86,21 +99,25 @@ function ViewTrip() {
     }
   };
 
-  const geocodeLocation = async (query, type) => {
+  const geocodeLocationGeoapify = async (query, type) => {
     try {
+      if (!query) return;
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
+        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(
+          query
+        )}&apiKey=${GEOAPIFY_KEY}`
       );
       const data = await res.json();
-      if (data.length > 0) {
-        const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      if (data.features?.length > 0) {
+        const coords = [
+          parseFloat(data.features[0].properties.lat),
+          parseFloat(data.features[0].properties.lon),
+        ];
         if (type === 'main') setMapCoords(coords);
         setMarkers((prev) => [...prev, { coords, label: query, type }]);
-      } else {
-        console.warn('No geocode result for:', query);
       }
     } catch (err) {
-      console.error('Geocoding error:', err);
+      console.error('Geoapify geocoding error:', err);
     }
   };
 
@@ -123,6 +140,17 @@ function ViewTrip() {
 
   return (
     <div className="p-10 md:px-20 lg:px-44 xl:px-56">
+      {/* Destination Image */}
+      {tripData?.user_selection?.location?.label?.trim() && (
+        <div className="mb-6">
+          <img
+            src={`https://source.unsplash.com/1200x600/?${tripData.user_selection.location.label}`}
+            alt={tripData.user_selection.location.label}
+            className="w-full h-64 object-cover rounded-lg"
+          />
+        </div>
+      )}
+
       {/* Map */}
       {markers.length > 0 && (
         <div
@@ -170,7 +198,19 @@ function ViewTrip() {
             {itinerary.map((day) => (
               <div key={day.day} className="p-4 border rounded-lg shadow-sm bg-white">
                 <h3 className="font-semibold text-lg">Day {day.day}</h3>
-                <p className="text-gray-700 mt-1">{day.plan}</p>
+                {day.plan.length > 0 ? (
+                  day.plan.map((place, idx) => (
+                    <div key={idx} className="mt-2">
+                      <strong>{place.placeName || 'Unnamed Place'}</strong>
+                      <p className="text-gray-700">{place.placeDetails || 'No details available'}</p>
+                      <p className="text-gray-500 text-sm">
+                        Time: {place.timeToTravel || 'Not specified'}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 mt-2">No places available for this day.</p>
+                )}
               </div>
             ))}
           </div>
@@ -186,3 +226,4 @@ function ViewTrip() {
 }
 
 export default ViewTrip;
+  

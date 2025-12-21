@@ -1,33 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { GetPlaceDetails } from '@/service/GlobalApi'; 
-
-const PHOTO_REF_URL =
-  'https://places.googleapis.com/v1/{NAME}/media?maxHeightPx=1200&maxWidthPx=1200&key=' +
-  import.meta.env.VITE_GOOGLE_PLACE_API_KEY;
 
 function HotelCardItem({ hotel }) {
-  const [photoUrl, setPhotoUrl] = useState();
+  const [photoUrl, setPhotoUrl] = useState('');
+
+  const UNSPLASH_ACCESS_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
 
   useEffect(() => {
-    if (hotel) GetPlacePhoto();
+    if (hotel) fetchHotelImage();
   }, [hotel]);
 
-  const GetPlacePhoto = async () => {
+  const fetchHotelImage = async () => {
     try {
-      const data = { textQuery: hotel?.hotelName };
-      const result = await GetPlaceDetails(data);
-      const photos = result?.data?.places?.[0]?.photos;
-
-      if (photos?.length > 0) {
-        const photoName = photos[0].name;
-        const url = PHOTO_REF_URL.replace('{NAME}', photoName);
-        setPhotoUrl(url);
-      } else {
-        console.warn('No photos found for hotel:', hotel?.hotelName);
-      }
-    } catch (error) {
-      console.error('Error fetching hotel photo:', error);
+      const query = hotel?.hotelName || hotel?.name || 'hotel';
+      const res = await fetch(
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
+          query
+        )}&per_page=1&orientation=landscape`,
+        {
+          headers: {
+            Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`,
+          },
+        }
+      );
+      const data = await res.json();
+      const firstImage = data?.results?.[0];
+      setPhotoUrl(
+        firstImage?.urls?.regular || '/fallback-hotel.jpg'
+      );
+    } catch (err) {
+      console.error('Error fetching hotel image:', err);
+      setPhotoUrl('/fallback-hotel.jpg');
     }
   };
 
@@ -40,8 +43,8 @@ function HotelCardItem({ hotel }) {
       <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 hover:-translate-y-2 border border-sky-100 h-full flex flex-col">
         <div className="relative overflow-hidden">
           <img
-            src={photoUrl || '/fallback-hotel.jpg'}
-            alt="Hotel Image"
+            src={photoUrl}
+            alt={hotel?.hotelName || 'Hotel'}
             className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
           />
         </div>
