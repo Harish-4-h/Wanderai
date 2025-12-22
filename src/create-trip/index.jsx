@@ -7,84 +7,63 @@ import { generateTravelPlan } from '@/service/AIModal';
 import { supabase } from '@/service/supabaseClient';
 import { toast } from 'sonner';
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './CreateTrip.css';
 
-// Fix default Leaflet marker icon issue
+/* Leaflet marker fix */
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl:
-    'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Loading overlay component
-const LoadingOverlay = ({ isVisible, message, subMessage }) => {
-  if (!isVisible) return null;
-  return (
+/* Loading overlay */
+const LoadingOverlay = ({ isVisible, message, subMessage }) =>
+  isVisible ? (
     <div className="loading-overlay">
       <div className="loading-modal">
-        <div className="loading-content">
-          <AiOutlineLoading3Quarters className="loading-icon" />
-          <h3>{message}</h3>
-          {subMessage && <p>{subMessage}</p>}
-        </div>
+        <AiOutlineLoading3Quarters className="loading-icon" />
+        <h3>{message}</h3>
+        {subMessage && <p>{subMessage}</p>}
       </div>
     </div>
-  );
-};
+  ) : null;
 
-// OSM Autocomplete Component
-const OSMAutocomplete = ({ value, onChange }) => {
+/* OSM Autocomplete */
+const OSMAutocomplete = ({ placeholder, value, onChange }) => {
   const [inputValue, setInputValue] = useState(value || '');
   const [suggestions, setSuggestions] = useState([]);
 
-  const fetchSuggestions = async (query) => {
-    if (!query) return setSuggestions([]);
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
-      );
-      const data = await res.json();
-      setSuggestions(data);
-    } catch (err) {
-      console.error("Autocomplete error:", err);
-    }
-  };
-
   useEffect(() => {
-    const timer = setTimeout(() => fetchSuggestions(inputValue), 300);
-    return () => clearTimeout(timer);
+    const t = setTimeout(async () => {
+      if (!inputValue) return setSuggestions([]);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(inputValue)}`
+      );
+      setSuggestions(await res.json());
+    }, 300);
+    return () => clearTimeout(t);
   }, [inputValue]);
-
-  const handleSelect = (place) => {
-    onChange({ label: place.display_name, lat: place.lat, lon: place.lon });
-    setInputValue(place.display_name);
-    setSuggestions([]);
-  };
 
   return (
     <div style={{ position: 'relative', marginBottom: '10px' }}>
       <Input
-        type="text"
-        placeholder="Enter destination"
+        placeholder={placeholder}
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
       />
       {suggestions.length > 0 && (
         <ul className="autocomplete-suggestions">
-          {suggestions.slice(0, 5).map((place) => (
-            <li
-              key={place.place_id}
-              onClick={() => handleSelect(place)}
-              className="autocomplete-item"
-            >
-              {place.display_name}
+          {suggestions.slice(0, 5).map(p => (
+            <li key={p.place_id} onClick={() => {
+              onChange({ label: p.display_name, lat: p.lat, lon: p.lon });
+              setInputValue(p.display_name);
+              setSuggestions([]);
+            }}>
+              {p.display_name}
             </li>
           ))}
         </ul>
@@ -95,97 +74,100 @@ const OSMAutocomplete = ({ value, onChange }) => {
 
 export default function CreateTrip() {
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
+    startLocation: null,
     location: null,
     noOfDays: '',
     budget: '',
-    traveler: ''
+    traveler: '',
+    transportMode: 'car'
   });
 
   const [loading, setLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('');
-  const [loadingSubMessage, setLoadingSubMessage] = useState('');
-  const [mapPosition, setMapPosition] = useState([13.0827, 80.2707]);
-  const [markerPosition, setMarkerPosition] = useState(null);
+  const [mapCenter, setMapCenter] = useState([13.0827, 80.2707]);
+  const [routes, setRoutes] = useState([]);
+  const [selectedRoute, setSelectedRoute] = useState(0);
+  const [distance, setDistance] = useState(null);
+  const [duration, setDuration] = useState(null);
 
-  const handleInputChange = (name, value) =>
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const update = (k, v) => setFormData(p => ({ ...p, [k]: v }));
 
-  const validateForm = () => {
-    const errors = [];
-    if (!formData.location?.label) errors.push("Select destination");
-    if (!formData.noOfDays) errors.push("Enter trip duration");
-    if (!formData.budget) errors.push("Select budget");
-    if (!formData.traveler) errors.push("Select traveler type");
-
-    const days = parseInt(formData.noOfDays);
-    if (isNaN(days) || days < 1 || days > 15) errors.push("Days must be between 1 and 15");
-
-    return errors;
+  /* Live location */
+  const useLiveLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      pos => update("startLocation", {
+        label: "Current Location",
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude
+      }),
+      () => toast.error("Location permission denied")
+    );
   };
 
-  const saveTrip = async (tripDataObj) => {
-    try {
-      const payload = { user_selection: formData, trip_data: tripDataObj };
+  /* Routes + distance */
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      if (!formData.startLocation || !formData.location) return;
 
-      const { data, error } = await supabase
-        .from("AITrips")
-        .insert(payload)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Supabase Insert Error:", error);
-        toast.error(error.message || "Failed to save trip");
+      if (formData.transportMode === 'flight') {
+        const d = haversine(
+          formData.startLocation.lat,
+          formData.startLocation.lon,
+          formData.location.lat,
+          formData.location.lon
+        );
+        setRoutes([]);
+        setDistance(d.toFixed(0));
+        setDuration((d / 700).toFixed(1));
         return;
       }
 
-      toast.success("🎉 Trip created successfully!");
-      navigate(`/view-trip/${data.id}`);
-    } catch (err) {
-      console.error("Save Trip Error:", err);
-      toast.error("Failed to save trip");
-    }
-  };
+      const url = `https://router.project-osrm.org/route/v1/driving/${formData.startLocation.lon},${formData.startLocation.lat};${formData.location.lon},${formData.location.lat}?alternatives=true&overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.routes?.length) {
+        setRoutes(data.routes);
+        setSelectedRoute(0);
+        setDistance((data.routes[0].distance / 1000).toFixed(1));
+        setDuration((data.routes[0].duration / 3600).toFixed(1));
+      }
+    };
+
+    fetchRoutes();
+  }, [formData.startLocation, formData.location, formData.transportMode]);
+
+  useEffect(() => {
+    const loc = formData.location || formData.startLocation;
+    if (loc) setMapCenter([+loc.lat, +loc.lon]);
+  }, [formData.startLocation, formData.location]);
 
   const OnGenerateTrip = async () => {
-    const errors = validateForm();
-    if (errors.length) {
-      errors.forEach(e => toast.error(e));
-      return;
-    }
+    if (!formData.location || !formData.startLocation)
+      return toast.error("Select start & destination");
 
     setLoading(true);
-    setLoadingMessage("Creating your dream trip ✨");
-    setLoadingSubMessage("AI is planning your journey...");
-
     try {
       const result = await generateTravelPlan(
-        formData.location.label,
+        `From ${formData.startLocation.label} to ${formData.location.label} by ${formData.transportMode}`,
         Number(formData.noOfDays),
         formData.traveler,
         formData.budget
       );
 
-      if (result?.days?.length > 0) {
-        await saveTrip(result);
-      } else {
-        toast.error("No itinerary generated. Try again!");
-      }
-    } catch (err) {
-      console.error(err);
+      const { data } = await supabase.from("AITrips").insert({
+        user_selection: { ...formData, distance, duration },
+        trip_data: result
+      }).select().single();
+
+      navigate(`/view-trip/${data.id}`);
+    } catch {
       toast.error("Trip generation failed");
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!formData.location) return;
-    const coords = [parseFloat(formData.location.lat), parseFloat(formData.location.lon)];
-    setMapPosition(coords);
-    setMarkerPosition(coords);
-  }, [formData.location]);
 
   const renderOptionCards = (options, selectedValue, fieldName) =>
     options.map(item => {
@@ -194,7 +176,7 @@ export default function CreateTrip() {
         <div
           key={value}
           className={`option-card ${selectedValue === value ? 'option-card-selected' : ''}`}
-          onClick={() => handleInputChange(fieldName, value)}
+          onClick={() => update(fieldName, value)}
         >
           <span>{item.icon}</span>
           <h3>{item.title || item.people}</h3>
@@ -205,36 +187,67 @@ export default function CreateTrip() {
 
   return (
     <div className="trip-container">
-      <LoadingOverlay
-        isVisible={loading}
-        message={loadingMessage}
-        subMessage={loadingSubMessage}
-      />
-
-      <img
-        src="/image.png"
+      <LoadingOverlay isVisible={loading} message="Creating your dream trip ✨" />
+<img src="/image.png"
         alt="Travel Banner"
         className="w-full h-auto mb-4 rounded-md shadow-md object-cover max-h-64"
       />
 
       <h1 className="text-2xl font-semibold mb-4">Share your travel preferences 🗺️</h1>
-
       <OSMAutocomplete
-        value={formData.location?.label || ''}
-        onChange={(loc) => handleInputChange("location", loc)}
+        placeholder="Starting location"
+        value={formData.startLocation?.label}
+        onChange={v => update("startLocation", v)}
       />
 
-      <div style={{ height: '300px', width: '100%', marginTop: '10px' }}>
-        <MapContainer center={mapPosition} zoom={12} style={{ height: '100%', width: '100%' }}>
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap contributors"
-          />
-          {markerPosition && (
-            <Marker position={markerPosition}>
-              <Popup>{formData.location?.label}</Popup>
-            </Marker>
+      <Button variant="outline" onClick={useLiveLocation}>📍 Use Live Location</Button>
+
+      <OSMAutocomplete
+        placeholder="Destination"
+        value={formData.location?.label}
+        onChange={v => update("location", v)}
+      />
+
+      <div className="transport-switch">
+        {['car', 'train', 'flight'].map(m => (
+          <Button
+            key={m}
+            variant={formData.transportMode === m ? 'default' : 'outline'}
+            onClick={() => update("transportMode", m)}
+          >
+            {m.toUpperCase()}
+          </Button>
+        ))}
+      </div>
+
+      {distance && <p className="text-sm">🛣️ {distance} km • ⏱️ {duration} hrs</p>}
+
+      {routes.length > 1 && (
+        <div className="route-options">
+          {routes.map((_, i) => (
+            <Button
+              key={i}
+              variant={selectedRoute === i ? 'default' : 'outline'}
+              onClick={() => {
+                setSelectedRoute(i);
+                setDistance((routes[i].distance / 1000).toFixed(1));
+                setDuration((routes[i].duration / 3600).toFixed(1));
+              }}
+            >
+              Route {i + 1}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      <div style={{ height: 300 }}>
+        <MapContainer center={mapCenter} zoom={6} style={{ height: '100%' }}>
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          {routes[selectedRoute] && (
+            <Polyline positions={routes[selectedRoute].geometry.coordinates.map(c => [c[1], c[0]])} />
           )}
+          {formData.startLocation && <Marker position={[+formData.startLocation.lat, +formData.startLocation.lon]} />}
+          {formData.location && <Marker position={[+formData.location.lat, +formData.location.lon]} />}
         </MapContainer>
       </div>
 
@@ -242,8 +255,7 @@ export default function CreateTrip() {
         type="number"
         placeholder="No of days"
         value={formData.noOfDays}
-        onChange={(e) => handleInputChange("noOfDays", e.target.value)}
-        style={{ marginTop: '10px' }}
+        onChange={(e) => update("noOfDays", e.target.value)}
       />
 
       <div className="options-wrapper">
@@ -259,4 +271,17 @@ export default function CreateTrip() {
       </Button>
     </div>
   );
+}
+
+/* Flight distance */
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) *
+    Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }

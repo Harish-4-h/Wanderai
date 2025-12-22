@@ -44,96 +44,79 @@ function ViewTrip() {
         .single();
 
       if (error) throw error;
-      if (!data) {
-        toast.error('Trip not found');
-        return;
-      }
+      if (!data) return toast.error('Trip not found');
 
       setTripData(data);
 
-      // Parse itinerary safely
       let parsedItinerary = [];
       if (data.trip_data) {
-        try {
-          const parsedData =
-            typeof data.trip_data === 'string' ? JSON.parse(data.trip_data) : data.trip_data;
+        const parsed =
+          typeof data.trip_data === 'string'
+            ? JSON.parse(data.trip_data)
+            : data.trip_data;
 
-          if (Array.isArray(parsedData.days)) {
-            parsedItinerary = parsedData.days.map((day) => ({
-              day: day.day,
-              plan: day.places?.map((p) => ({
-                placeName: p.name || p.placeName,
-                placeDetails: p.about,
-                timeToTravel: p.time,
+        if (Array.isArray(parsed.days)) {
+          parsedItinerary = parsed.days.map((day) => ({
+            day: day.day,
+            plan:
+              day.places?.map((p) => ({
+                placeName: p.name || p.placeName || 'Unnamed Place',
+                placeDetails: p.about || 'No details available',
+                timeToTravel: p.time || 'N/A',
               })) || [],
-            }));
-          }
-        } catch (err) {
-          console.error('Error parsing itinerary:', err);
+          }));
         }
       }
       setItinerary(parsedItinerary);
 
-      // Prepare locations for map markers
       const allLocations = [];
-      if (data.user_selection?.location?.label) {
-        allLocations.push({ query: data.user_selection.location.label, type: 'main' });
-      }
-      if (Array.isArray(data.hotels)) {
-        data.hotels.forEach((hotel) =>
-          allLocations.push({ query: hotel.hotelName || hotel.name, type: 'hotel' })
-        );
-      }
-      if (Array.isArray(data.places)) {
-        data.places.forEach((place) =>
-          allLocations.push({ query: place.placeName || place.name, type: 'place' })
-        );
-      }
+      const mainLabel = data.user_selection?.location?.label;
+      if (mainLabel) allLocations.push({ query: mainLabel, type: 'main' });
 
-      for (const loc of allLocations) {
-        await geocodeLocationGeoapify(loc.query, loc.type);
-      }
-    } catch (err) {
-      console.error('Error fetching trip:', err);
+      data.hotels?.forEach((h) =>
+        allLocations.push({ query: h.hotelName || h.name || '', type: 'hotel' })
+      );
+      data.places?.forEach((p) =>
+        allLocations.push({ query: p.placeName || p.name || '', type: 'place' })
+      );
+
+      for (const loc of allLocations) await geocodeLocationGeoapify(loc.query, loc.type);
+    } catch {
       toast.error('Failed to load trip');
     }
   };
 
   const geocodeLocationGeoapify = async (query, type) => {
-    try {
-      if (!query) return;
-      const res = await fetch(
-        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(
-          query
-        )}&apiKey=${GEOAPIFY_KEY}`
-      );
-      const data = await res.json();
-      if (data.features?.length > 0) {
-        const coords = [
-          parseFloat(data.features[0].properties.lat),
-          parseFloat(data.features[0].properties.lon),
-        ];
-        if (type === 'main') setMapCoords(coords);
-        setMarkers((prev) => [...prev, { coords, label: query, type }]);
-      }
-    } catch (err) {
-      console.error('Geoapify geocoding error:', err);
+    if (!query) return;
+    const res = await fetch(
+      `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(
+        query
+      )}&apiKey=${GEOAPIFY_KEY}`
+    );
+    const data = await res.json();
+    if (data.features?.length) {
+      const coords = [
+        data.features[0].properties.lat,
+        data.features[0].properties.lon,
+      ];
+      if (type === 'main') setMapCoords(coords);
+      setMarkers((p) => [...p, { coords, label: query, type }]);
     }
   };
 
   const downloadPDF = async () => {
-    const itineraryElement = document.getElementById('itinerary-section');
-    if (!itineraryElement) return;
-
-    const canvas = await html2canvas(itineraryElement);
-    const imgData = canvas.toDataURL('image/png');
+    const el = document.getElementById('pdf-layout');
+    if (!el) return;
+    const canvas = await html2canvas(el, { scale: 2 });
+    const img = canvas.toDataURL('image/png');
 
     const pdf = new jsPDF('p', 'pt', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const w = pdf.internal.pageSize.getWidth();
+    const h = (canvas.height * w) / canvas.width;
 
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`${tripData?.user_selection?.location?.label || 'trip'}_itinerary.pdf`);
+    const locationLabel = tripData?.user_selection?.location?.label || 'My Trip';
+    pdf.addImage(img, 'PNG', 0, 0, w, h);
+    pdf.save(`${locationLabel}_itinerary.pdf`);
   };
 
   if (!tripData) return <p className="text-center mt-10">Loading trip details...</p>;
@@ -141,7 +124,7 @@ function ViewTrip() {
   return (
     <div className="p-10 md:px-20 lg:px-44 xl:px-56">
       {/* Destination Image */}
-      {tripData?.user_selection?.location?.label?.trim() && (
+      {tripData?.user_selection?.location?.label?.trim() ? (
         <div className="mb-6">
           <img
             src={`https://source.unsplash.com/1200x600/?${tripData.user_selection.location.label}`}
@@ -149,7 +132,7 @@ function ViewTrip() {
             className="w-full h-64 object-cover rounded-lg"
           />
         </div>
-      )}
+      ) : null}
 
       {/* Map */}
       {markers.length > 0 && (
@@ -201,10 +184,10 @@ function ViewTrip() {
                 {day.plan.length > 0 ? (
                   day.plan.map((place, idx) => (
                     <div key={idx} className="mt-2">
-                      <strong>{place.placeName || 'Unnamed Place'}</strong>
-                      <p className="text-gray-700">{place.placeDetails || 'No details available'}</p>
+                      <strong>{place.placeName}</strong>
+                      <p className="text-gray-700">{place.placeDetails}</p>
                       <p className="text-gray-500 text-sm">
-                        Time: {place.timeToTravel || 'Not specified'}
+                        Time: {place.timeToTravel}
                       </p>
                     </div>
                   ))
@@ -221,9 +204,41 @@ function ViewTrip() {
       <InfoSection trip={tripData} />
       <Hotels trip={tripData} />
       <PlacesToVisit trip={tripData} />
+
+      {/* Hidden PDF layout for enhanced view */}
+      <div
+        id="pdf-layout"
+        className="p-8"
+        style={{ position: 'absolute', left: '-9999px', width: '800px' }}
+      >
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg mb-6">
+          <h1 className="text-3xl font-bold">
+            ✈️ {tripData?.user_selection?.location?.label || 'My Trip'}
+          </h1>
+          <p className="opacity-90">Wander AI – Smart Travel Itinerary</p>
+        </div>
+
+        {itinerary.map((day) => (
+          <div key={day.day} className="mb-4 bg-white rounded-lg shadow p-4">
+            <h2 className="text-xl font-semibold text-blue-600 mb-2">
+              Day {day.day}
+            </h2>
+            {day.plan.map((p, i) => (
+              <div key={i} className="mb-2">
+                <p className="font-medium">📍 {p.placeName}</p>
+                <p className="text-gray-600 text-sm">{p.placeDetails}</p>
+                <p className="text-xs text-gray-500">⏱ {p.timeToTravel}</p>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        <p className="text-center text-xs text-gray-400 mt-6">
+          Generated by Wander AI
+        </p>
+      </div>
     </div>
   );
 }
 
 export default ViewTrip;
-  
