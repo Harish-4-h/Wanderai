@@ -19,14 +19,8 @@
     "transform": {
       "^.+\\.(js|jsx)$": "babel-jest"
     },
-    "moduleFileExtensions": [
-      "js",
-      "jsx"
-    ],
-    "collectCoverageFrom": [
-      "src/**/*.{js,jsx}",
-      "!src/**/*.d.ts"
-    ]
+    "moduleFileExtensions": ["js", "jsx"],
+    "collectCoverageFrom": ["src/**/*.{js,jsx}", "!src/**/*.d.ts"]
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
@@ -39,7 +33,6 @@
     "@react-oauth/google": "^0.12.2",
     "@supabase/supabase-js": "^2.87.1",
     "axios": "^1.13.2",
-    "caniuse-lite": "^1.0.30001761",
     "class-variance-authority": "^0.7.0",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
@@ -48,7 +41,6 @@
     "jspdf": "^3.0.4",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.407.0",
-    "next-themes": "^0.3.0",
     "openai": "^6.10.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -67,7 +59,7 @@
     "@testing-library/react": "^16.3.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.19",
     "babel-jest": "^30.0.5",
     "cypress": "^14.5.2",
@@ -81,6 +73,6 @@
     "postcss": "^8.4.39",
     "sass": "^1.89.2",
     "tailwindcss": "^3.4.4",
-    "vite": "^7.2.7"
+    "vite": "^6.4.1"
   }
 }
