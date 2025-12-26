@@ -3,7 +3,7 @@ import { supabase } from "@/service/supabaseClient";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import "./MyTrips.css"; // make sure to import the CSS
+import "./mytrips.css"; // make sure to import the CSS
 
 export default function MyTrips() {
   const [trips, setTrips] = useState([]);
