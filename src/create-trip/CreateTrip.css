@@ -7,6 +7,15 @@
   flex-direction: column;
   gap: 1.5rem;
 }
+/* ---------------------- Page Background ---------------------- */
+body {
+  background-image: url('/Images/BG1.jpg'); /* replace with your image path */
+  background-size: cover;      /* makes it cover the full container */
+  background-position: center; /* centers the image */
+  background-repeat: no-repeat;
+  min-height: 100vh;
+  padding: 2rem 0;
+}
 
 /* ---------------------- Banner Image ---------------------- */
 .trip-container img {

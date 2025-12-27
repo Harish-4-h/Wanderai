@@ -67,6 +67,7 @@ const Footer = () => {
           <div className="bicycle-animation" />
         </div>
       </div>
+      
 
       {/* Footer Bottom */}
       <div className="footer-bottom">

@@ -94,7 +94,7 @@ export default function Home() {
       <Hero />
       <SVGAnimation />
 
-      <h2 className="text-2xl font-bold mt-10 mb-4">Recent Trips 🌎</h2>
+      <h2 className="text-2xl font-bold  text-white mt-10 mb-4">Recent Trips 🌎</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {trips.map((trip) => {
           const userSelection = trip.user_selection;
