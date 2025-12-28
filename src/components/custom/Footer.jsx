@@ -80,6 +80,9 @@ const Footer = () => {
                 © 2025 Wander AI - Where your tech dreams came true ✨
               </p>
             </div>
+            <footer className="credits-footer">
+            <a href="https://www.instagram.com/_havlock_hari_" target="_blank" rel="noopener noreferrer">
+            📷 Follow for more Interesting and Useful Websites! </a> </footer>
             <div className="developer-section">
               <p className="developer-text">
                 Made with <span className="heart">❤️</span> by{' '}

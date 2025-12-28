@@ -7,6 +7,18 @@
   flex-direction: column;
   gap: 1.5rem;
 }
+/* ---------------------- Budget Option Styling ---------------------- */
+.budget-option {
+  background-color: rgb(129, 177, 84) !important;
+  color: white !important;
+}
+
+.budget-option span,
+.budget-option h3,
+.budget-option p {
+  color: white !important;
+}
+
 /* ---------------------- Page Background ---------------------- */
 body {
   background-image: url('/Images/BG1.jpg'); /* replace with your image path */

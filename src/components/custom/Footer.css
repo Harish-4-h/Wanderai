@@ -11,6 +11,24 @@
   overflow-x: hidden;
   background: linear-gradient(135deg, #f0f4ff 0%, #e6f0ff 100%);
 }
+.credits-footer {
+  text-align: center;       /* Center the text */
+  padding: 1rem 0;          /* Vertical padding */
+  font-size: 0.9rem;        /* Slightly smaller font */
+  color: #888;              /* Subtle gray color */ /* Optional light background */
+  position: relative;       /* Ensures it stays in flow */
+}
+
+.credits-footer a {
+  color: #1a73e8;           /* Instagram-like link color */
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+
+.credits-footer a:hover {
+  color: #000;              /* Dark on hover */
+}
 
 .footer-container {
   max-width: 1200px;

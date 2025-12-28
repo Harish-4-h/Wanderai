@@ -172,10 +172,11 @@ export default function CreateTrip() {
   const renderOptionCards = (options, selectedValue, fieldName) =>
     options.map(item => {
       const value = item.title || item.people;
+      const isBudget = fieldName === "budget";
       return (
         <div
           key={value}
-          className={`option-card ${selectedValue === value ? 'option-card-selected' : ''}`}
+          className={`option-card ${selectedValue === value ? 'option-card-selected' : ''} ${isBudget ? 'budget-option' : ''}`}
           onClick={() => update(fieldName, value)}
         >
           <span>{item.icon}</span>
@@ -188,7 +189,7 @@ export default function CreateTrip() {
   return (
     <div className="trip-container">
       <LoadingOverlay isVisible={loading} message="Creating your dream trip ✨" />
-<img src="/image.png"
+      <img src="/image.png"
         alt="Travel Banner"
         className="w-full h-auto mb-4 rounded-md shadow-md object-cover max-h-64"
       />
