@@ -26,7 +26,9 @@ const Footer = () => {
             <div className="subscribe-section">
               <h3 className="section-title">Subscribe</h3>
               <p className="section-description">
-                Get the latest travel insights & AI updates
+                Get the latest travel insights & AI updates<br>
+                </br>
+                Made In India 🇮🇳
               </p>
               <form className="subscribe-form" onSubmit={handleSubmit}>
                 <input

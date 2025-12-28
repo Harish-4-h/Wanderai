@@ -132,11 +132,11 @@ export default function MyTrips() {
               onClick={() => deleteTrip(trip.id)}
               className="flex-1 bg-red-500 hover:bg-gray-600 text-white"
             >
-              Delete
+              Delete Trip
             </Button>
             <Link to={`/view-trip/${trip.id}`} className="flex-1">
               <Button className="w-full bg-blue-500 hover:bg-green-600 text-white">
-                View Trip
+                View Trip Details!
               </Button>
             </Link>
           </div>
@@ -147,7 +147,7 @@ export default function MyTrips() {
 
   return (
     <div className="my-trips-container">
-      <h1>All Trips ✈️</h1>
+      <h1>All Trips ✈️🏁</h1>
       {loading && <p>Loading trips...</p>}
       {!loading && trips.length === 0 && <p>No trips found.</p>}
 

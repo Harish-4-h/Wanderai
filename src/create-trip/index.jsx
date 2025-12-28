@@ -193,23 +193,23 @@ export default function CreateTrip() {
         className="w-full h-auto mb-4 rounded-md shadow-md object-cover max-h-64"
       />
 
-      <h1 className="text-2xl font-semibold mb-4">Share your travel preferences 🗺️</h1>
+      <h1 className="text-2xl font-semibold mb-4">Share your travel preferences 🗺️🎀</h1>
       <OSMAutocomplete
-        placeholder="Starting location"
+        placeholder="Starting Location🎯"
         value={formData.startLocation?.label}
         onChange={v => update("startLocation", v)}
       />
 
-      <Button variant="outline" onClick={useLiveLocation}>📍 Use Live Location</Button>
+      <Button variant="outline" onClick={useLiveLocation}>📍 Use Live Location🛰️📡</Button>
 
       <OSMAutocomplete
-        placeholder="Destination"
+        placeholder="Destination🚩"
         value={formData.location?.label}
         onChange={v => update("location", v)}
       />
 
       <div className="transport-switch">
-        {['car', 'train', 'flight'].map(m => (
+        {['car🏎️', 'train🚉', 'flight🚀'].map(m => (
           <Button
             key={m}
             variant={formData.transportMode === m ? 'default' : 'outline'}
