@@ -1,7 +1,7 @@
 export const SelectTravelesList = [
     {
       id: 1,
-      title: 'Solo Traveler',
+      title: 'Solo Traveler - ',
       desc: 'An individual exploring the world alone',
       icon: '🌍',  
       people: '1'
@@ -9,21 +9,21 @@ export const SelectTravelesList = [
     {
       id: 2,
       title: 'Couple',
-      desc: 'Two people traveling together',
+      desc: 'Two people traveling together💗',
       icon: '👩🏻‍❤️‍👨🏻',  
       people: '2 People'
     },
     {
       id: 3,
       title: 'Family',
-      desc: 'A family enjoying quality time together',
+      desc: 'A Family Enjoying Quality Time Together',
       icon: '👨🏻‍👩🏻‍👦🏻‍👦🏻',  
       people: '3 to 5 People'
     },
     {
       id: 4,
       title: 'Friends',
-      desc: 'A group of adventure-loving friends',
+      desc: 'A Group of Adventure-loving Friends📸',
       icon: '🎉',  
       people: '5 to 10 People'
     },

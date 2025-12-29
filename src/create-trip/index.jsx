@@ -200,9 +200,9 @@ export default function CreateTrip() {
         value={formData.startLocation?.label}
         onChange={v => update("startLocation", v)}
       />
-
+    <div className='livebutton'>
       <Button variant="outline" onClick={useLiveLocation}>📍 Use Live Location🛰️📡</Button>
-
+</div>
       <OSMAutocomplete
         placeholder="Destination🚩"
         value={formData.location?.label}
@@ -221,7 +221,7 @@ export default function CreateTrip() {
         ))}
       </div>
 
-      {distance && <p className="text-sm">🛣️ {distance} km • ⏱️ {duration} hrs</p>}
+      {distance && <p className="text-sm">🛣️ {distance} Kilometers • ⏱️ {duration} hrs</p>}
 
       {routes.length > 1 && (
         <div className="route-options">
@@ -254,7 +254,7 @@ export default function CreateTrip() {
 
       <Input
         type="number"
-        placeholder="No of days"
+        placeholder="No of days💭📈"
         value={formData.noOfDays}
         onChange={(e) => update("noOfDays", e.target.value)}
       />

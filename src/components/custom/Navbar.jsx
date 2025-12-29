@@ -15,7 +15,7 @@ export default function Navbar() {
             }`
           }
         >
-          Home
+          Home🏡
         </NavLink>
 
         <NavLink
@@ -29,7 +29,7 @@ export default function Navbar() {
             }`
           }
         >
-          Create Trip
+          Create Trip🗽
         </NavLink>
 
         <NavLink
@@ -43,7 +43,7 @@ export default function Navbar() {
             }`
           }
         >
-          My Trips
+          My Trips⛵
         </NavLink>
       </div>
     </nav>

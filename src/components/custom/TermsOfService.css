@@ -52,6 +52,7 @@
   padding: 8px 20px;
   border-radius: 25px;
   font-size: 0.9rem;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 
@@ -250,6 +251,7 @@
   padding: 12px 24px;
   border-radius: 30px;
   margin-top: 1rem;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   font-weight: 600;
 }

@@ -13,7 +13,8 @@ const PrivacyPolicy = () => {
               Your privacy is our priority as we craft your perfect journey
             </p>
             <div className="last-updated">
-              Last updated: January 2025
+              Last updated: January 2026 by <br></br><a href="https://www.instagram.com/_havlock_hari_" target="_blank" rel="noopener noreferrer">
+            📷 Havlock_hari-!!</a>
             </div>
           </div>
           <div className="header-illustration">
@@ -229,6 +230,10 @@ const PrivacyPolicy = () => {
               <span>Privacy-first AI travel planning</span>
             </div>
           </section>
+          <section className="privacy-section-contact-info">
+            <p>Made With Love by <br></br>
+                  Harish🖤</p>
+            </section>
 
         </div>
       </div>

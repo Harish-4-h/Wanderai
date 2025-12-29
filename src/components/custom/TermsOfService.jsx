@@ -13,7 +13,7 @@ const TermsOfService = () => {
               Your journey with WanderAI starts with understanding our terms
             </p>
             <div className="last-updated">
-              Last updated: January 2025
+              Last updated: January 2026
             </div>
           </div>
           <div className="header-illustration">
@@ -136,7 +136,9 @@ const TermsOfService = () => {
             </p>
             <div className="contact-highlight">
               <span className="icon">✨</span>
-              <span>Where your tech dreams came true</span>
+              <span>Where your tech dreams came true
+                <br></br>Call 91+ 8870470069 (Or) Email us at harishyuvan8870@gmail.com 
+              </span>
             </div>
           </section>
 
