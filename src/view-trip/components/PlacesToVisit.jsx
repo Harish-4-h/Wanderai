@@ -1,96 +1,119 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import PlaceCardItem from "./PlaceCardItem";
+import { generateGPTResponse } from "@/service/OpenAIService";
 
 function PlacesToVisit({ trip }) {
+  console.log("PLACES COMPONENT RENDERED");
 
-  if (!trip?.itinerary) {
-    return (
-      <div className="mt-5">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
-            <span className="text-white text-xl">📍</span>
-          </div>
-          <h2 className="font-bold text-2xl text-cyan-500">Places To Visit</h2>
-        </div>
-        <div className="text-center py-8">
-          <p className="text-gray-500">No itinerary data available</p>
-        </div>
-      </div>
-    );
-  }
+  const [gptPlaces, setGptPlaces] = useState([]);
+  const [loadingGPT, setLoadingGPT] = useState(false);
+  const [error, setError] = useState("");
 
-  let itineraryArray = [];
+  const fallbackPlaces = [
+    { placeName: "Eiffel Tower", placeDetails: "Iconic landmark in Paris", timeToTravel: "2 hrs" },
+    { placeName: "Louvre Museum", placeDetails: "Famous art museum", timeToTravel: "3 hrs" },
+    { placeName: "Notre Dame Cathedral", placeDetails: "Historic cathedral", timeToTravel: "1.5 hrs" },
+    { placeName: "Montmartre", placeDetails: "Artistic district with city views", timeToTravel: "2 hrs" }
+  ];
 
-  if (Array.isArray(trip.itinerary.dailyPlans)) {
-    itineraryArray = trip.itinerary.dailyPlans;
-  } 
-  else if (Array.isArray(trip.itinerary)) {
-    itineraryArray = trip.itinerary;
-  } 
-  else {
-    itineraryArray = Object.values(trip.itinerary);
-  }
+  // ✅ Parse user_selection ONCE
+  const destination = useMemo(() => {
+    try {
+      const parsed = trip?.user_selection
+        ? JSON.parse(trip.user_selection)
+        : null;
 
-  if (itineraryArray.length === 0) {
-    return (
-      <div className="mt-5">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
-            <span className="text-white text-xl">📍</span>
-          </div>
-          <h2 className="font-bold text-2xl text-cyan-500">Places To Visit</h2>
-        </div>
-        <div className="text-center py-8">
-          <p className="text-gray-500">No daily plans available</p>
-        </div>
-      </div>
-    );
-  }
+      return (
+        parsed?.destination?.label ||
+        parsed?.location?.label ||
+        parsed?.place?.label ||
+        null
+      );
+    } catch {
+      return null;
+    }
+  }, [trip]);
+
+  console.log("DESTINATION >>>", destination);
+
+  const fetchPlacesFromGPT = async () => {
+    if (!destination) return;
+
+    setLoadingGPT(true);
+    setError("");
+
+    try {
+      const prompt = `
+Return ONLY a valid JSON array.
+No text, no markdown, no explanation.
+
+[
+  { "placeName": "string", "placeDetails": "string", "timeToTravel": "string" }
+]
+
+Destination: ${destination}
+`;
+
+      const response = await generateGPTResponse(prompt);
+      const parsed = JSON.parse(response);
+
+      setGptPlaces(Array.isArray(parsed) ? parsed : fallbackPlaces);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch places. Showing fallback.");
+      setGptPlaces(fallbackPlaces);
+    } finally {
+      setLoadingGPT(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlacesFromGPT();
+  }, [destination]);
+
+  const itineraryArray = trip?.itinerary
+    ? Array.isArray(trip.itinerary.dailyPlans)
+      ? trip.itinerary.dailyPlans
+      : Array.isArray(trip.itinerary)
+      ? trip.itinerary
+      : Object.values(trip.itinerary)
+    : [];
+
+  const displayArray =
+    itineraryArray.length > 0
+      ? itineraryArray
+      : [{ day: "Tourist Attractions", plan: gptPlaces }];
 
   return (
     <div className="mt-5">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
-          <span className="text-white text-xl">📍</span>
+      <h2 className="font-bold text-2xl text-cyan-500 mb-6">Places To Visit</h2>
+
+      {loadingGPT && (
+        <div className="text-center py-8 text-gray-500">
+          Fetching places from GPT...
         </div>
-        <h2 className="font-bold text-2xl text-cyan-500">Places To Visit</h2>
-      </div>
+      )}
+
+      {error && <div className="text-center py-4 text-red-500">{error}</div>}
 
       <div className="space-y-8">
-        {itineraryArray.map((item, index) => (
-          <div
-            key={index}
-            className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300"
-          >
-            <div className="mb-6">
-              <h2 className="font-bold text-2xl text-cyan-500 mb-2">
-                {item.day || `Day ${index + 1}`}
-              </h2>
-              <div className="w-20 h-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"></div>
-            </div>
+        {displayArray.map((item, index) => (
+          <div key={index} className="bg-white p-6 rounded-xl">
+            <h3 className="font-bold text-xl mb-4">
+              {item.day || `Day ${index + 1}`}
+            </h3>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {Array.isArray(item.plan) ? (
-                item.plan.map((place, placeIndex) => (
-                  <div
-                    key={placeIndex}
-                    className="bg-gray-50 rounded-lg p-4 min-h-[280px] flex flex-col"
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <h3 className="font-semibold text-sm text-red-600 uppercase tracking-wide">
-                        {place.time || `Activity ${placeIndex + 1}`}
-                      </h3>
-                    </div>
-
-                    <PlaceCardItem place={place} />
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-2 bg-gray-50 rounded-lg p-8 flex items-center justify-center">
-                  <p className="text-gray-500">No places data available</p>
-                </div>
-              )}
+              {item.plan?.map((place, i) => (
+                <PlaceCardItem
+                  key={i}
+                  place={{
+                    name: place.placeName,
+                    details: place.placeDetails,
+                    timeToTravel: place.timeToTravel
+                  }}
+                />
+              ))}
             </div>
           </div>
         ))}

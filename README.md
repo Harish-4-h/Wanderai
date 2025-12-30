@@ -1,8 +1,9 @@
 # WanderAI - AI Travel Planner
 
-An intelligent web application that generates personalized travel itineraries using Google Gemini AI.
+An intelligent web application that generates personalized travel itineraries using Open Ai GPT.
 
 **Author:** Harish R
+**College:**Nadar Mahajana Sangam S.Vellaichamy Nadar College, Madurai
 **University:** Madurai kamaraj University - NMSSVN College, Madurai
 **Project:** Final Year Graduation Project
 
@@ -18,7 +19,7 @@ An intelligent web application that generates personalized travel itineraries us
 
 - **Frontend:** React 18, Vite, Tailwind CSS
 - **Backend:** Firebase (Firestore, Auth)
-- **AI:** Google Gemini API
+- **AI:** Open AI GPT
 - **APIs:** Google Places, Google Maps
 - **UI:** ShadCN UI Components
 
@@ -65,7 +66,7 @@ src/
 ├── view-trip/           # Trip viewing pages
 ├── my-trips/            # User trips management
 ├── service/             # API services
-│   ├── AIModal.js       # Google Gemini integration
+│   ├── AIModal.js       # Open AI GPT integration
 │   ├── firebaseConfig.js# Firebase setup
 │   └── GlobalApi.js     # Google Places API
 └── constants/           # Static data

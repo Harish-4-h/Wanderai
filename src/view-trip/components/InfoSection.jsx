@@ -44,13 +44,13 @@ function InfoSection({ trip }) {
   return (
     <div className="my-8">
       <div className="relative overflow-hidden rounded-2xl shadow-xl">
-        <img
-          src={photoUrl}
+        <img src="/Images/Bottomimg.jpg"
           alt={trip?.user_selection?.location?.label || "Trip Image"}
           loading="lazy"
           decoding="async"
           className="h-[400px] w-full object-cover rounded-2xl shadow-xl"
         />
+        
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent"></div>
 
         <div className="absolute bottom-0 left-0 right-0 p-8 text-white">

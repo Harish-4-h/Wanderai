@@ -5,7 +5,7 @@ function PlaceCardItem({ place }) {
   const [photoUrl, setPhotoUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const UNSPLASH_ACCESS_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
+  const GEOAPIFY_API_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY;
 
   useEffect(() => {
     if (place?.placeName) fetchPlaceImage();
@@ -16,17 +16,14 @@ function PlaceCardItem({ place }) {
     try {
       const query = place?.placeName || 'travel';
       const res = await fetch(
-        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
+        `https://api.geoapify.com/v1/images/search?text=${encodeURIComponent(
           query
-        )}&per_page=1&orientation=landscape`,
-        {
-          headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` },
-        }
+        )}&type=photo&format=json&apiKey=${GEOAPIFY_API_KEY}&limit=1`
       );
       const data = await res.json();
-      const firstImage = data?.results?.[0];
+      const firstImage = data?.features?.[0];
       setPhotoUrl(
-        firstImage?.urls?.regular ||
+        firstImage?.properties?.url ||
           'https://via.placeholder.com/160x160/e0f2fe/0891b2?text=No+Image'
       );
     } catch (err) {
@@ -41,7 +38,7 @@ function PlaceCardItem({ place }) {
     return (
       <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5 shadow-lg">
         <div className="text-center text-gray-500">
-          <p>No place data available</p>
+          <p>Don't Plan, Just Execute!</p>
         </div>
       </div>
     );
@@ -49,7 +46,7 @@ function PlaceCardItem({ place }) {
 
   return (
     <a
-      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      href={`https://my.maps.geoapify.com/?text=${encodeURIComponent(
         place.placeName || ''
       )}`}
       target="_blank"

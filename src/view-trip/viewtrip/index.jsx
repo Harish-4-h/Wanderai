@@ -151,13 +151,16 @@ function ViewTrip() {
 
   return (
     <div className="p-10 md:px-20 lg:px-44 xl:px-56">
-      {/* Destination Image */}
+      {/* Top Destination Image */}
       {tripData?.user_selection?.location?.label?.trim() && (
         <div className="mb-6">
           <img
             src={`https://source.unsplash.com/1200x600/?${tripData.user_selection.location.label}`}
             alt={tripData.user_selection.location.label}
-            className="w-full h-64 object-cover rounded-lg"
+            className="w-full h-64 sm:h-80 md:h-96 object-cover rounded-lg"
+            onError={(e) => {
+              e.target.src = '/fallback-image.jpg';
+            }}
           />
         </div>
       )}
@@ -231,7 +234,7 @@ function ViewTrip() {
       <Hotels trip={tripData} />
       <PlacesToVisit trip={tripData} />
 
-      {/* Hidden PDF layout for enhanced view */}
+      {/* Hidden PDF layout */}
       <div
         id="pdf-layout"
         className="p-8"
