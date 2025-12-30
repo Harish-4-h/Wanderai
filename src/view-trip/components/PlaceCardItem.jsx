@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FaMapLocationDot } from "react-icons/fa6";
 
 const GEO_API_KEY = import.meta.env.VITE_GEO_API_KEY;
+const UNSPLASH_ACCESS_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
 
 function PlaceCardItem({ place }) {
   const [photoUrl, setPhotoUrl] = useState();
@@ -13,19 +14,36 @@ function PlaceCardItem({ place }) {
 
   const fetchPlacePhoto = async () => {
     setIsLoadingPhoto(true);
+
     try {
-      const response = await fetch(
+      // 1️⃣ Try Geoapify
+      const geoRes = await fetch(
         `https://api.geoapify.com/v2/places?categories=tourism.sights&filter=text:${encodeURIComponent(
           place.name
         )}&limit=1&apiKey=${GEO_API_KEY}`
       );
-      const data = await response.json();
-      const firstPlace = data?.features?.[0];
+      const geoData = await geoRes.json();
+      const geoPhoto = geoData?.features?.[0]?.properties?.photo?.href;
 
-      if (firstPlace?.properties?.photo?.href) {
-        setPhotoUrl(firstPlace.properties.photo.href);
+      if (geoPhoto) {
+        setPhotoUrl(geoPhoto);
       } else {
-        setPhotoUrl("https://via.placeholder.com/160x160/e0f2fe/0891b2?text=No+Image");
+        // 2️⃣ Fallback to Unsplash
+        const unsplashRes = await fetch(
+          `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
+            place.name
+          )}&per_page=1&orientation=landscape`,
+          {
+            headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` },
+          }
+        );
+        const unsplashData = await unsplashRes.json();
+        const unsplashPhoto = unsplashData?.results?.[0]?.urls?.regular;
+
+        setPhotoUrl(
+          unsplashPhoto ||
+            "https://via.placeholder.com/160x160/e0f2fe/0891b2?text=No+Image"
+        );
       }
     } catch {
       setPhotoUrl("https://via.placeholder.com/160x160/e0f2fe/0891b2?text=No+Image");
@@ -38,7 +56,9 @@ function PlaceCardItem({ place }) {
 
   return (
     <a
-      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
+      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        place.name
+      )}`}
       target="_blank"
       rel="noopener noreferrer"
     >
@@ -54,9 +74,10 @@ function PlaceCardItem({ place }) {
                 src={photoUrl}
                 alt={place.name}
                 className="w-full md:w-[160px] h-[160px] object-cover transform transition-transform duration-500 group-hover:scale-110"
-                onError={(e) => {
-                  e.target.src = "https://via.placeholder.com/160x160/e0f2fe/0891b2?text=No+Image";
-                }}
+                onError={(e) =>
+                  (e.target.src =
+                    "https://via.placeholder.com/160x160/e0f2fe/0891b2?text=No+Image")
+                }
               />
             )}
           </div>
@@ -73,7 +94,9 @@ function PlaceCardItem({ place }) {
             <div className="flex items-center justify-between pt-2">
               <div className="flex items-center gap-2 px-3 py-1 bg-sky-50 rounded-full">
                 <span className="text-sky-500">⏱️</span>
-                <span className="text-sm font-medium text-sky-700">{place.timeToTravel || "Not specified"}</span>
+                <span className="text-sm font-medium text-sky-700">
+                  {place.timeToTravel || "Not specified"}
+                </span>
               </div>
 
               <button className="group/btn bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 p-2 rounded-full shadow-md hover:shadow-lg transform transition-all duration-300 hover:scale-110 active:scale-95">
