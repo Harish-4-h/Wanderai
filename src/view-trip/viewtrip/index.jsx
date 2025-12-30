@@ -238,7 +238,7 @@ function ViewTrip() {
       <div
         id="pdf-layout"
         className="p-8"
-        style={{ position: 'absolute', left: '-9999px', width: '800px' }}
+        style={{ display: 'none', width: '800px' }}
       >
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg mb-6">
           <h1 className="text-3xl font-bold">

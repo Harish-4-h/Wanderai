@@ -16,17 +16,18 @@ function PlacesToVisit({ trip }) {
     { placeName: "Montmartre", placeDetails: "Artistic district with city views", timeToTravel: "2 hrs" }
   ];
 
-  // ✅ Parse user_selection ONCE
+  // ✅ SAFE destination extraction (string OR object)
   const destination = useMemo(() => {
     try {
-      const parsed = trip?.user_selection
-        ? JSON.parse(trip.user_selection)
-        : null;
+      const selection =
+        typeof trip?.user_selection === "string"
+          ? JSON.parse(trip.user_selection)
+          : trip?.user_selection;
 
       return (
-        parsed?.destination?.label ||
-        parsed?.location?.label ||
-        parsed?.place?.label ||
+        selection?.destination?.label ||
+        selection?.location?.label ||
+        selection?.place?.label ||
         null
       );
     } catch {
