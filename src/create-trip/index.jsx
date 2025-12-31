@@ -173,12 +173,29 @@ export default function CreateTrip() {
     options.map(item => {
       const value = item.title || item.people;
       const isBudget = fieldName === "budget";
+      const isSelected = selectedValue === value;
+
       return (
         <div
           key={value}
-          className={`option-card ${selectedValue === value ? 'option-card-selected' : ''} ${isBudget ? 'budget-option' : ''}`}
+          className={`option-card ${isSelected ? 'option-card-selected' : ''} ${isBudget ? 'budget-option' : ''}`}
+          style={{ position: 'relative', cursor: 'pointer' }}
           onClick={() => update(fieldName, value)}
         >
+          {/* Top-right checkbox */}
+          <input
+            type="checkbox"
+            checked={isSelected}
+            readOnly
+            style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              width: '18px',
+              height: '18px',
+              cursor: 'pointer',
+            }}
+          />
           <span>{item.icon}</span>
           <h3>{item.title || item.people}</h3>
           <p>{item.desc}</p>
@@ -200,9 +217,9 @@ export default function CreateTrip() {
         value={formData.startLocation?.label}
         onChange={v => update("startLocation", v)}
       />
-    <div className='livebutton'>
-      <Button variant="outline" onClick={useLiveLocation}>📍 Use Live Location🛰️📡</Button>
-</div>
+      <div className='livebutton'>
+        <Button variant="outline" onClick={useLiveLocation}>📍 Use Live Location🛰️📡</Button>
+      </div>
       <OSMAutocomplete
         placeholder="Destination🚩"
         value={formData.location?.label}

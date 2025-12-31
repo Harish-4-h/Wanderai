@@ -10,7 +10,7 @@
 
 /* ---------------------- Budget Option Styling ---------------------- */
 .budget-option {
-  background-color: rgb(255, 233, 135) !important;
+  background-color: rgb(255, 255, 255) !important;
   color: rgb(255, 255, 255) !important;
 }
 
@@ -185,4 +185,34 @@ body {
 .transport-switch button:hover {
   background-color: #a3ee9c;
   transition: 0.3s;
+}
+/* ---------------------- Option Card Checkboxes ---------------------- */
+.option-card input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #fff;
+  border: 2px solid #cbd5e1;
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  transition: all 0.2s ease;
+}
+
+.option-card input[type="checkbox"]:checked {
+  background-color: #06b6d4;
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.3);
+}
+
+.option-card input[type="checkbox"]:checked::after {
+  content: '✔';
+  display: block;
+  color: white;
+  font-size: 12px;
+  text-align: center;
+  line-height: 18px;
 }

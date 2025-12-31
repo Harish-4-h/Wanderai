@@ -85,10 +85,11 @@ function PlaceCardItem({ place, isTouristAttraction = false }) {
               {place.details || "No place description available"}
             </p>
 
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex items-center gap-2 px-3 py-1 bg-sky-50 rounded-full">
-                <span>⏱️</span>
-                <span className="text-sm font-medium text-sky-700">
+             <div className="flex items-center justify-between pt-2">
+              {/* ✅ FIX: strong contrast pill */}
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-sky-600">
+                <span className="text-white">⏱️</span>
+                <span className="text-sm font-medium text-white">
                   {place.timeToTravel || "Not specified"}
                 </span>
               </div>

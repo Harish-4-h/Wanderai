@@ -94,7 +94,7 @@ export default function MyTrips() {
     }
   };
 
-  const renderTripCard = (trip) => {
+  const renderTripCard = (trip, index) => {
     const userSelection = trip?.user_selection
       ? typeof trip.user_selection === "string"
         ? JSON.parse(trip.user_selection)
@@ -112,7 +112,11 @@ export default function MyTrips() {
     const photoUrl = images[trip.id];
 
     return (
-      <div key={trip.id} className="trip-card">
+      <div
+        key={trip.id}
+        className="trip-card fade-in"
+        style={{ transition: "opacity 3s ease-out, transform 3s ease-out", transitionDelay: `${index * 0.2}s` }}
+      >
         {photoUrl ? (
           <img src={photoUrl} alt={locationLabel} />
         ) : (
@@ -145,13 +149,32 @@ export default function MyTrips() {
     );
   };
 
+  // Fade-in on scroll logic
+  useEffect(() => {
+    const elements = document.querySelectorAll(".fade-in");
+
+    const handleScroll = () => {
+      elements.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight - 50) {
+          el.classList.add("show");
+        }
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [trips]);
+
   return (
     <div className="my-trips-container">
       <h1>All Trips ✈️🏁</h1>
       {loading && <p>Loading trips...</p>}
       {!loading && trips.length === 0 && <p>No trips found.</p>}
 
-      <div className="trips-grid">{trips.map(renderTripCard)}</div>
+      <div className="trips-grid">{trips.map((trip, index) => renderTripCard(trip, index))}</div>
     </div>
   );
 }
