@@ -188,8 +188,8 @@ body {
 }
 /* ---------------------- Option Card Checkboxes ---------------------- */
 .option-card input[type="checkbox"] {
-  appearance: none;
   -webkit-appearance: none;
+  appearance: none;
   background-color: #fff;
   border: 2px solid #cbd5e1;
   border-radius: 4px;
