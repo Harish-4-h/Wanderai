@@ -7,6 +7,7 @@
   flex-direction: column;
   gap: 1.5rem;
 }
+
 /* ---------------------- Budget Option Styling ---------------------- */
 .budget-option {
   background-color: rgb(255, 233, 135) !important;
@@ -19,24 +20,38 @@
   color: rgb(0, 0, 0) !important;
 }
 
-/* ---------------------- Page Background ---------------------- */
+/* ---------------------- Page Background (HIGH QUALITY FIX) ---------------------- */
 body {
-  background-image: url('/Images/BG1.jpg'); /* replace with your image path */
-  background-size: cover;      /* makes it cover the full container */
-  background-position: center; /* centers the image */
+  background-image: url('/Images/BG1.jpg');
+  background-size: 100% auto;       /* prevents aggressive scaling */
+  background-position: center top;  /* avoids unnecessary crop */
   background-repeat: no-repeat;
+  background-attachment: fixed;     /* improves perceived sharpness */
   min-height: 100vh;
   padding: 2rem 0;
+
+  /* force better image rendering */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: auto;
 }
-.livebutton{
+
+/* fallback for very wide screens */
+@media (min-width: 1600px) {
+  body {
+    background-size: cover;
+  }
+}
+
+.livebutton {
   display: flex;
   justify-content: center;
 }
 
-.text-sm{
+.text-sm {
   color: whitesmoke;
 }
-.livebutton :hover{
+
+.livebutton :hover {
   background-color: #a3ee9c;
   transition: 0.3s;
   max-width: 100%;
@@ -58,7 +73,6 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  
 }
 
 .option-card {
@@ -66,14 +80,14 @@ body {
   border: 2px solid #e2e8f0;
   border-radius: 12px;
   padding: 1rem;
-  cursor: pointer; /* pointer cursor */
+  cursor: pointer;
   text-align: center;
   transition: all 0.2s ease;
   background-color: white;
 }
 
 .option-card:hover {
-  transform: scale(1.05); /* bulge effect */
+  transform: scale(1.05);
   border-color: #22d3ee;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
@@ -92,7 +106,7 @@ body {
   font-weight: bold;
   border-radius: 12px;
   transition: background-color 0.2s ease;
-  cursor: pointer; /* pointer cursor */
+  cursor: pointer;
 }
 
 .generate-trip-btn:hover {
@@ -134,7 +148,7 @@ body {
 }
 
 /* ---------------------- Autocomplete Suggestions ---------------------- */
-.autocomplete-suggestions { /* updated class to match your component */
+.autocomplete-suggestions {
   position: absolute;
   top: 100%;
   left: 0;
@@ -150,7 +164,7 @@ body {
 
 .autocomplete-suggestions li {
   padding: 0.5rem 1rem;
-  cursor: pointer; /* pointer cursor for suggestions */
+  cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
@@ -158,16 +172,17 @@ body {
   background-color: #ecfeff;
   color: #06b6d4;
 }
-.transport-switch button{
+
+.transport-switch button {
   display: inline;
   align-items: center;
   gap: 0.9rem;
   background-color: rgb(221, 218, 218);
-  text-shadow: brown;
   border-radius: 12px;
   color: rgb(0, 0, 0);
 }
-.transport-switch button:hover{
+
+.transport-switch button:hover {
   background-color: #a3ee9c;
   transition: 0.3s;
 }
