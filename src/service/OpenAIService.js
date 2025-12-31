@@ -23,9 +23,26 @@ export const generateGPTResponse = async (prompt) => {
       ]
     });
 
-    return response.choices[0].message.content.trim();
+    let raw = response.choices[0].message.content.trim();
+
+    // Extract only the JSON array part to prevent parsing errors
+    const jsonStart = raw.indexOf("[");
+    const jsonEnd = raw.lastIndexOf("]") + 1;
+    if (jsonStart === -1 || jsonEnd === -1) {
+      throw new Error("Invalid JSON response from GPT");
+    }
+
+    const jsonString = raw.slice(jsonStart, jsonEnd);
+    const parsed = JSON.parse(jsonString);
+
+    // Ensure it's always an array
+    if (!Array.isArray(parsed)) {
+      throw new Error("GPT response is not an array");
+    }
+
+    return parsed;
   } catch (error) {
-    console.error("OpenAI API error:", error);
+    console.error("OpenAI API error or invalid response:", error);
     throw error;
   }
 };

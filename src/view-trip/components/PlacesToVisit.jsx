@@ -5,7 +5,7 @@ import { generateGPTResponse } from "@/service/OpenAIService";
 function PlacesToVisit({ trip }) {
   console.log("PLACES COMPONENT RENDERED");
 
-  const [gptPlaces, setGptPlaces] = useState([]);
+  const [gptPlacesCache, setGptPlacesCache] = useState({});
   const [loadingGPT, setLoadingGPT] = useState(false);
   const [error, setError] = useState("");
 
@@ -16,7 +16,6 @@ function PlacesToVisit({ trip }) {
     { placeName: "Montmartre", placeDetails: "Artistic district with city views", timeToTravel: "2 hrs" }
   ];
 
-  // ✅ SAFE destination extraction (string OR object)
   const destination = useMemo(() => {
     try {
       const selection =
@@ -40,6 +39,9 @@ function PlacesToVisit({ trip }) {
   const fetchPlacesFromGPT = async () => {
     if (!destination) return;
 
+    // Return cached result if available
+    if (gptPlacesCache[destination]) return;
+
     setLoadingGPT(true);
     setError("");
 
@@ -58,11 +60,17 @@ Destination: ${destination}
       const response = await generateGPTResponse(prompt);
       const parsed = JSON.parse(response);
 
-      setGptPlaces(Array.isArray(parsed) ? parsed : fallbackPlaces);
+      setGptPlacesCache((prev) => ({
+        ...prev,
+        [destination]: Array.isArray(parsed) ? parsed : fallbackPlaces,
+      }));
     } catch (err) {
-      console.error(err);
-      setError("Failed to fetch places. Showing fallback.");
-      setGptPlaces(fallbackPlaces);
+      console.error("GPT fetch error:", err);
+      setError("Failed to fetch places from GPT. Showing fallback.");
+      setGptPlacesCache((prev) => ({
+        ...prev,
+        [destination]: fallbackPlaces,
+      }));
     } finally {
       setLoadingGPT(false);
     }
@@ -82,8 +90,16 @@ Destination: ${destination}
 
   const displayArray =
     itineraryArray.length > 0
-      ? itineraryArray
-      : [{ day: "Tourist Attractions", plan: gptPlaces }];
+      ? itineraryArray.map((item) => ({
+          ...item,
+          plan: item.plan || gptPlacesCache[destination] || (loadingGPT ? [] : fallbackPlaces),
+        }))
+      : [
+          {
+            day: "Tourist Attractions",
+            plan: gptPlacesCache[destination] || (loadingGPT ? [] : fallbackPlaces),
+          },
+        ];
 
   return (
     <div className="mt-5">

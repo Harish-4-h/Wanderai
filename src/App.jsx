@@ -8,6 +8,8 @@ import 'leaflet/dist/leaflet.css';
 import './index.css';
 import { Button } from './components/ui/button.jsx';
 
+console.log("GEO_API_KEY:", import.meta.env.VITE_GEO_API_KEY);
+
 // Custom Components
 import Hero from './components/custom/Hero';
 import SVGAnimation from './components/custom/SVGAnimation';
@@ -70,22 +72,32 @@ export default function Home() {
     }
   };
 
+  // ✅ Safe geocoding with fallback coordinates
   const geocodeLocation = async (query) => {
+    if (!query) return;
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
           query
         )}`
       );
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
       const data = await res.json();
       if (data.length > 0) {
         setLocationsCache((prev) => ({
           ...prev,
           [query]: [parseFloat(data[0].lat), parseFloat(data[0].lon)],
         }));
+      } else {
+        console.warn(`No geocoding results for ${query}`);
+        setLocationsCache((prev) => ({ ...prev, [query]: [0, 0] }));
       }
     } catch (err) {
       console.error('Geocoding error:', err);
+      // Fallback coordinates so map still renders
+      setLocationsCache((prev) => ({ ...prev, [query]: [0, 0] }));
     }
   };
 
@@ -94,7 +106,7 @@ export default function Home() {
       <Hero />
       <SVGAnimation />
 
-      <h2 className="text-2xl font-bold  text-white mt-10 mb-4">Recent Trips 🌎</h2>
+      <h2 className="text-2xl font-bold text-white mt-10 mb-4">Recent Trips 🌎</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {trips.map((trip) => {
           const userSelection = trip.user_selection;
@@ -138,7 +150,7 @@ export default function Home() {
                       attribution="&copy; OpenStreetMap contributors"
                     />
                     <Marker position={coords}>
-                      <Popup>{userSelection.location.label}</Popup>
+                      <Popup>{userSelection.location?.label || 'Unknown'}</Popup>
                     </Marker>
                   </MapContainer>
                 </div>
