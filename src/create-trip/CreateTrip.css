@@ -23,17 +23,27 @@
 /* ---------------------- Page Background (HIGH QUALITY FIX) ---------------------- */
 body {
   background-image: url('/Images/BG1.jpg');
-  background-size: 100% auto;       /* prevents aggressive scaling */
-  background-position: center top;  /* avoids unnecessary crop */
+  background-size: cover;           /* fills screen without distortion */
+  background-position: center top;  
   background-repeat: no-repeat;
-  background-attachment: relative;     /* improves perceived sharpness */
+  background-attachment: scroll;    /* better mobile behavior */
   min-height: 100vh;
-  padding: 2rem 0;
+  margin: 0;
+  padding: 0;
 
   /* force better image rendering */
   image-rendering: -webkit-optimize-contrast;
   image-rendering: auto;
+
+  /* fallback background color if image fails */
+  background-color: #f0f0f0;
 }
+
+/* optional: ensure main content has some padding on small screens */
+main, .container {
+  padding: 2rem 1rem;
+}
+
 
 /* fallback for very wide screens */
 @media (min-width: 1600px) {
