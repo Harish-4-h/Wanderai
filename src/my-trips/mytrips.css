@@ -22,6 +22,19 @@
   }
 }
 
+/* ---------- Fade-in Wrapper ---------- */
+.trip-card-wrapper {
+  opacity: 0;
+  transform: translateY(25px);
+  transition: opacity 1s ease-out, transform 1s ease-out;
+}
+
+.trip-card-wrapper.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- Card Styling ---------- */
 .trip-card {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
@@ -30,14 +43,15 @@
   background-color: #fff;
   display: flex;
   flex-direction: column;
-  transition: transform 0.6s ease, box-shadow 0.6s ease; /* smooth in/out */
   cursor: pointer;
   will-change: transform;
+  transition: transform 0.6s ease, box-shadow 0.6s ease;
+  transform-origin: center bottom;
 }
 
 .trip-card:hover {
-  transform: scale(1.05) translateY(-7px); /* smooth bulge */
-  box-shadow: 0 14px 25px rgba(0,0,0,0.2); /* lifted shadow */
+  transform: scale(1.05);
+  box-shadow: 0 14px 25px rgba(0,0,0,0.2);
 }
 
 .trip-card img {
@@ -94,9 +108,10 @@
 .trip-card .delete-button:hover {
   background-color: #e53e3e;
 }
+
 .fade-in {
   opacity: 0;
-  transform: translateY(25px); /* slightly bigger distance for smoother entry */
+  transform: translateY(25px); /* translate only for fade-in */
   transition: opacity 1s ease-out, transform 1s ease-out;
 }
 
