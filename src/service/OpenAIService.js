@@ -1,31 +1,30 @@
-import { OpenAI } from "openai";
+import OpenAI from "openai";
 
 const client = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
+  dangerouslyAllowBrowser: true,
 });
 
 export const generateGPTResponse = async (prompt) => {
   try {
-    const response = await client.chat.completions.create({
+    const response = await client.responses.create({
       model: import.meta.env.VITE_OPENAI_MODEL || "gpt-4.1-mini",
       temperature: 0.2,
-      messages: [
+      input: [
         {
           role: "system",
           content:
-            "Return ONLY a valid JSON array. No text, no markdown, no explanations. The response MUST start with [ and end with ]."
+            "Return ONLY a valid JSON array. No text, no markdown, no explanations. The response MUST start with [ and end with ].",
         },
         {
           role: "user",
-          content: prompt
-        }
-      ]
+          content: prompt,
+        },
+      ],
     });
 
-    let raw = response.choices[0].message.content.trim();
+    const raw = response.output_text.trim();
 
-    // Extract only the JSON array part to prevent parsing errors
     const jsonStart = raw.indexOf("[");
     const jsonEnd = raw.lastIndexOf("]") + 1;
     if (jsonStart === -1 || jsonEnd === -1) {
@@ -35,7 +34,6 @@ export const generateGPTResponse = async (prompt) => {
     const jsonString = raw.slice(jsonStart, jsonEnd);
     const parsed = JSON.parse(jsonString);
 
-    // Ensure it's always an array
     if (!Array.isArray(parsed)) {
       throw new Error("GPT response is not an array");
     }

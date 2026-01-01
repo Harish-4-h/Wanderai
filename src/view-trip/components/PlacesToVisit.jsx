@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import PlaceCardItem from "./PlaceCardItem";
 import { generateGPTResponse } from "@/service/OpenAIService";
 
@@ -8,6 +8,9 @@ function PlacesToVisit({ trip }) {
   const [gptPlacesCache, setGptPlacesCache] = useState({});
   const [loadingGPT, setLoadingGPT] = useState(false);
   const [error, setError] = useState("");
+
+  // prevents duplicate in-flight GPT calls
+  const inFlightRef = useRef(false);
 
   const fallbackPlaces = [
     { placeName: "Eiffel Tower", placeDetails: "Iconic landmark in Paris", timeToTravel: "2 hrs" },
@@ -39,8 +42,12 @@ function PlacesToVisit({ trip }) {
   const fetchPlacesFromGPT = async () => {
     if (!destination) return;
 
-    // Return cached result if available
+    // hard cache: never re-call for same destination
     if (gptPlacesCache[destination]) return;
+
+    // single-flight guard
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
 
     setLoadingGPT(true);
     setError("");
@@ -58,11 +65,10 @@ Destination: ${destination}
 `;
 
       const response = await generateGPTResponse(prompt);
-      const parsed = JSON.parse(response);
 
       setGptPlacesCache((prev) => ({
         ...prev,
-        [destination]: Array.isArray(parsed) ? parsed : fallbackPlaces,
+        [destination]: Array.isArray(response) ? response : fallbackPlaces,
       }));
     } catch (err) {
       console.error("GPT fetch error:", err);
@@ -72,6 +78,7 @@ Destination: ${destination}
         [destination]: fallbackPlaces,
       }));
     } finally {
+      inFlightRef.current = false;
       setLoadingGPT(false);
     }
   };
@@ -127,7 +134,7 @@ Destination: ${destination}
                   place={{
                     name: place.placeName,
                     details: place.placeDetails,
-                    timeToTravel: place.timeToTravel
+                    timeToTravel: place.timeToTravel,
                   }}
                 />
               ))}

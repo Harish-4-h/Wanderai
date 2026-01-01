@@ -4,6 +4,12 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 /**
+ * In-memory cache + lock
+ */
+const travelPlanCache = {};
+let inFlight = false;
+
+/**
  * Named export: generateTravelPlan
  */
 export const generateTravelPlan = async (
@@ -13,169 +19,37 @@ export const generateTravelPlan = async (
   budget,
   informativeMode = true
 ) => {
+  if (!destination) return null;
+
+  const cacheKey = `${destination}_${days}_${traveler}_${budget}_${informativeMode}`;
+  if (travelPlanCache[cacheKey]) {
+    return travelPlanCache[cacheKey];
+  }
+
+  if (inFlight) return null;
+  inFlight = true;
+
   try {
     const prompt = informativeMode
       ? `
 You are an expert local travel guide and itinerary planner.
-
 Create a ${days}-day travel plan for ${destination} for a ${traveler} traveler with a ${budget} budget.
-
-IMPORTANT RULES:
-- Use only real, well-known, verifiable places
-- Include exact opening and closing times (approximate if needed, but realistic)
-- Mention distance from main arrival point / city center
-- Do NOT invent unknown facts
-- Avoid generic phrases
-- Output ONLY valid JSON (no markdown, no explanations)
-
-JSON SCHEMA:
-
-{
-  "destination": "${destination}",
-  "arrival_essentials": {
-    "hotels": {
-      "best_for_your_budget": [
-        {
-          "name": "Hotel name",
-          "distance": "Distance from arrival point",
-          "opening_time": "Check-in time",
-          "closing_time": "Reception closing time (or 24h)",
-          "why_recommended": "Reason it fits the budget"
-        }
-      ],
-      "must_visit": [
-        {
-          "name": "Hotel name",
-          "distance": "Distance from arrival point",
-          "opening_time": "Check-in time",
-          "closing_time": "Reception closing time (or 24h)",
-          "why_special": "Why this hotel is notable"
-        }
-      ]
-    },
-    "restaurants": {
-      "best_for_your_budget": [
-        {
-          "name": "Restaurant name",
-          "distance": "Distance from arrival point",
-          "opening_time": "Opening time",
-          "closing_time": "Closing time",
-          "cuisine": "Cuisine type"
-        }
-      ],
-      "must_visit": [
-        {
-          "name": "Restaurant name",
-          "distance": "Distance from arrival point",
-          "opening_time": "Opening time",
-          "closing_time": "Closing time",
-          "why_classic": "Why it is timeless or famous"
-        }
-      ]
-    },
-    "cafes": {
-      "best_for_your_budget": [
-        {
-          "name": "Cafe name",
-          "distance": "Distance from arrival point",
-          "opening_time": "Opening time",
-          "closing_time": "Closing time",
-          "ambience": "Short ambience description"
-        }
-      ],
-      "must_visit": [
-        {
-          "name": "Cafe name",
-          "distance": "Distance from arrival point",
-          "opening_time": "Opening time",
-          "closing_time": "Closing time",
-          "ambience": "Why the ambience stands out"
-        }
-      ]
-    }
-  },
-  "tourist_attractions": [
-    {
-      "name": "Attraction name",
-      "opening_time": "Opening time",
-      "closing_time": "Closing time",
-      "about": "Why it is important or worth visiting"
-    }
-  ],
-  "overview": {
-    "summary": "Short cultural and historical overview",
-    "historical_context": "High-level historical background (2–3 sentences)"
-  },
-  "days": [
-    {
-      "day": 1,
-      "theme": "Theme of the day",
-      "places": [
-        {
-          "name": "Place name",
-          "time": "Suggested visit time",
-          "about": "Cultural or historical context",
-          "historical_facts": ["Fact 1", "Fact 2"],
-          "why_it_matters": "Why this place matters today"
-        }
-      ]
-    }
-  ]
-}
+Output ONLY valid JSON.
 `
       : `
-Create a ${days}-day simple travel itinerary for ${destination} for a ${traveler} traveler with a ${budget} budget.
-
-Rules:
-- Use real places only
-- Output ONLY valid JSON
-
-JSON SCHEMA:
-
-{
-  "destination": "${destination}",
-  "arrival_essentials": {
-    "hotels": [],
-    "restaurants": [],
-    "cafes": []
-  },
-  "tourist_attractions": [
-    {
-      "name": "Attraction name",
-      "opening_time": "Opening time",
-      "closing_time": "Closing time"
-    }
-  ],
-  "days": [
-    {
-      "day": 1,
-      "places": [
-        {
-          "name": "Place name",
-          "time": "Suggested visit time"
-        }
-      ]
-    }
-  ]
-}
+Create a ${days}-day simple travel itinerary for ${destination}.
+Output ONLY valid JSON.
 `;
 
-    const rawResponse = await generateGPTResponse(prompt);
-    const jsonMatch = rawResponse.match(/{[\s\S]*}/);
-    const cleaned = jsonMatch ? jsonMatch[0] : rawResponse;
+    const parsed = await generateGPTResponse(prompt);
 
-    let parsed;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch (err) {
-      const relaxed = cleaned.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
-      parsed = JSON.parse(relaxed);
-    }
-
+    travelPlanCache[cacheKey] = parsed;
     return parsed;
   } catch (error) {
     console.error("generateTravelPlan error:", error);
     return { destination, overview: null, days: [] };
+  } finally {
+    inFlight = false;
   }
 };
 
@@ -190,31 +64,33 @@ export default function AIModal({ destination, days, traveler, budget, onClose }
   const itineraryRef = useRef();
 
   const handleGenerate = async () => {
+    if (loading) return;
+
     setLoading(true);
     setError(null);
 
-    try {
-      const plan = await generateTravelPlan(destination, days, traveler, budget, informativeMode);
-      if (!plan || !plan.days || plan.days.length === 0) {
-        setError("No itinerary generated. Try again.");
-        setItinerary(null);
-      } else {
-        setItinerary(plan);
-      }
-    } catch (err) {
-      console.error(err);
-      setError("Failed to generate itinerary.");
+    const plan = await generateTravelPlan(
+      destination,
+      days,
+      traveler,
+      budget,
+      informativeMode
+    );
+
+    if (!plan || !plan.days || plan.days.length === 0) {
+      setError("No itinerary generated. Try again.");
       setItinerary(null);
-    } finally {
-      setLoading(false);
+    } else {
+      setItinerary(plan);
     }
+
+    setLoading(false);
   };
 
   const handleDownloadPDF = async () => {
     if (!itineraryRef.current) return;
-    const element = itineraryRef.current;
-    const canvas = await html2canvas(element, { scale: 2 });
-    const imgData = canvas.toDataURL("image.png");
+    const canvas = await html2canvas(itineraryRef.current, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
@@ -227,58 +103,32 @@ export default function AIModal({ destination, days, traveler, budget, onClose }
       <button onClick={onClose} className="close-btn">X</button>
       <h2>AI Travel Plan</h2>
 
-      <div className="informative-toggle">
-        <label>
-          <input
-            type="checkbox"
-            checked={informativeMode}
-            onChange={() => setInformativeMode(!informativeMode)}
-          />
-          Informative Mode (History & Facts)
-        </label>
-      </div>
+      <label>
+        <input
+          type="checkbox"
+          checked={informativeMode}
+          onChange={() => setInformativeMode(!informativeMode)}
+        />
+        Informative Mode
+      </label>
 
       <button onClick={handleGenerate} disabled={loading}>
         {loading ? "Generating..." : "Generate Itinerary"}
       </button>
 
       {itinerary && (
-        <button onClick={handleDownloadPDF} className="download-btn">
-          Download PDF
-        </button>
+        <button onClick={handleDownloadPDF}>Download PDF</button>
       )}
 
       {error && <p className="error">{error}</p>}
 
       {itinerary && (
-        <div className="itinerary-container" ref={itineraryRef}>
-          {informativeMode && itinerary.overview && (
-            <div className="overview">
-              <h3>Overview</h3>
-              <p>{itinerary.overview.summary}</p>
-              <p>{itinerary.overview.historical_context}</p>
-            </div>
-          )}
-
-          {itinerary.days.map((day) => (
-            <div key={day.day} className="day-card">
-              <h3>Day {day.day}{day.theme ? `: ${day.theme}` : ""}</h3>
-              {day.places.map((place, idx) => (
-                <div key={idx} className="place-card">
-                  <h4>{place.name}</h4>
-                  <p><strong>Time:</strong> {place.time}</p>
-                  {informativeMode && place.about && <p><strong>About:</strong> {place.about}</p>}
-                  {informativeMode && place.historical_facts && (
-                    <ul>
-                      {place.historical_facts.map((fact, i) => (
-                        <li key={i}>{fact}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {informativeMode && place.why_it_matters && (
-                    <p><strong>Why it matters:</strong> {place.why_it_matters}</p>
-                  )}
-                </div>
+        <div ref={itineraryRef}>
+          {itinerary.days?.map((day) => (
+            <div key={day.day}>
+              <h3>Day {day.day}</h3>
+              {day.places?.map((p, i) => (
+                <p key={i}>{p.name}</p>
               ))}
             </div>
           ))}
