@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/service/supabaseClient';
@@ -32,35 +32,60 @@ function ViewTrip() {
   const [markers, setMarkers] = useState([]);
   const [itinerary, setItinerary] = useState([]);
   const [destination, setDestination] = useState('My Trip');
-  const [heroImage, setHeroImage] = useState(null); // ✅ added only
+  const [heroImages, setHeroImages] = useState([]);
+  const [currentImageIdx, setCurrentImageIdx] = useState(0);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
 
   useEffect(() => {
     if (tripId) getTripData();
   }, [tripId]);
 
-  // ✅ SAME IMAGE LOGIC AS MY TRIPS
+  // Fetch multiple images from Unsplash
   useEffect(() => {
-    const fetchImage = async () => {
+    const fetchImages = async () => {
       if (!destination) return;
       try {
         const res = await fetch(
           `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
             destination
-          )}&per_page=1&orientation=landscape`,
-          {
-            headers: {
-              Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`,
-            },
-          }
+          )}&per_page=5&orientation=landscape`,
+          { headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` } }
         );
         const json = await res.json();
-        setHeroImage(json?.results?.[0]?.urls?.regular || null);
+        const urls = json.results.map((img) => img.urls.regular);
+        setHeroImages(urls.length ? urls : ['/fallback-image.jpg']);
       } catch {
-        setHeroImage(null);
+        setHeroImages(['/fallback-image.jpg']);
       }
     };
-    fetchImage();
+    fetchImages();
   }, [destination]);
+
+  // Auto-slide every 5s
+  useEffect(() => {
+    if (!heroImages.length) return;
+    const interval = setInterval(() => {
+      setCurrentImageIdx((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [heroImages]);
+
+  // Swipe Handlers
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = () => {
+    const delta = touchStartX.current - touchEndX.current;
+    if (delta > 50) {
+      setCurrentImageIdx((prev) => (prev + 1) % heroImages.length);
+    } else if (delta < -50) {
+      setCurrentImageIdx((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+    }
+  };
 
   const getTripData = async () => {
     try {
@@ -93,9 +118,7 @@ function ViewTrip() {
       let parsedItinerary = [];
       if (data.trip_data) {
         const parsed =
-          typeof data.trip_data === 'string'
-            ? JSON.parse(data.trip_data)
-            : data.trip_data;
+          typeof data.trip_data === 'string' ? JSON.parse(data.trip_data) : data.trip_data;
 
         if (Array.isArray(parsed.days)) {
           parsedItinerary = parsed.days.map((day) => ({
@@ -121,8 +144,7 @@ function ViewTrip() {
         allLocations.push({ query: p.placeName || p.name || '', type: 'place' })
       );
 
-      for (const loc of allLocations)
-        await geocodeLocationGeoapify(loc.query, loc.type);
+      for (const loc of allLocations) await geocodeLocationGeoapify(loc.query, loc.type);
     } catch {
       toast.error('Failed to load trip');
     }
@@ -150,11 +172,24 @@ function ViewTrip() {
     const el = document.getElementById('pdf-layout');
     if (!el) return;
 
+    // Force all text to black for PDF
+    const allElements = el.querySelectorAll('*');
+    const originalColors = [];
+    allElements.forEach((el, idx) => {
+      originalColors[idx] = el.style.color;
+      el.style.color = 'black';
+    });
+
     el.style.position = 'absolute';
     el.style.left = '-9999px';
     el.style.display = 'block';
 
     const canvas = await html2canvas(el, { scale: 2 });
+
+    // Restore original colors
+    allElements.forEach((el, idx) => {
+      el.style.color = originalColors[idx];
+    });
 
     el.style.display = 'none';
     el.style.position = '';
@@ -192,13 +227,47 @@ function ViewTrip() {
 
   return (
     <div className="p-10 md:px-20 lg:px-44 xl:px-56">
-      {destination && (
-        <div className="mb-6">
+      {destination && heroImages.length > 0 && (
+        <div
+          className="mb-6 relative"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <img
-            src={heroImage || '/fallback-image.jpg'}
+            src={heroImages[currentImageIdx]}
             alt={destination}
-            className="w-full h-64 sm:h-80 md:h-96 object-cover rounded-lg"
+            className="w-full h-64 sm:h-80 md:h-96 object-cover rounded-lg transition-all duration-700"
           />
+
+          {/* Prev/Next Buttons */}
+          <button
+            onClick={() =>
+              setCurrentImageIdx((prev) => (prev - 1 + heroImages.length) % heroImages.length)
+            }
+            className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white px-3 py-1 rounded-full hover:bg-opacity-60"
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => setCurrentImageIdx((prev) => (prev + 1) % heroImages.length)}
+            className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white px-3 py-1 rounded-full hover:bg-opacity-60"
+          >
+            ›
+          </button>
+
+          {/* Dots */}
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
+            {heroImages.map((_, idx) => (
+              <span
+                key={idx}
+                onClick={() => setCurrentImageIdx(idx)}
+                className={`w-3 h-3 rounded-full cursor-pointer transition-colors ${
+                  idx === currentImageIdx ? 'bg-white' : 'bg-gray-400'
+                }`}
+              />
+            ))}
+          </div>
         </div>
       )}
 
