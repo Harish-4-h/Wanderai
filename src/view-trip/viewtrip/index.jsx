@@ -23,6 +23,7 @@ L.Icon.Default.mergeOptions({
 });
 
 const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_GEOCODE_KEY;
+const UNSPLASH_ACCESS_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
 
 function ViewTrip() {
   const { tripId } = useParams();
@@ -30,10 +31,36 @@ function ViewTrip() {
   const [mapCoords, setMapCoords] = useState([13.0827, 80.2707]);
   const [markers, setMarkers] = useState([]);
   const [itinerary, setItinerary] = useState([]);
+  const [destination, setDestination] = useState('My Trip');
+  const [heroImage, setHeroImage] = useState(null); // ✅ added only
 
   useEffect(() => {
     if (tripId) getTripData();
   }, [tripId]);
+
+  // ✅ SAME IMAGE LOGIC AS MY TRIPS
+  useEffect(() => {
+    const fetchImage = async () => {
+      if (!destination) return;
+      try {
+        const res = await fetch(
+          `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
+            destination
+          )}&per_page=1&orientation=landscape`,
+          {
+            headers: {
+              Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`,
+            },
+          }
+        );
+        const json = await res.json();
+        setHeroImage(json?.results?.[0]?.urls?.regular || null);
+      } catch {
+        setHeroImage(null);
+      }
+    };
+    fetchImage();
+  }, [destination]);
 
   const getTripData = async () => {
     try {
@@ -47,6 +74,21 @@ function ViewTrip() {
       if (!data) return toast.error('Trip not found');
 
       setTripData(data);
+
+      const rawSelection =
+        typeof data.user_selection === 'string'
+          ? JSON.parse(data.user_selection)
+          : data.user_selection;
+
+      const destName =
+        rawSelection?.destination?.label ||
+        rawSelection?.location?.label ||
+        rawSelection?.location?.name ||
+        rawSelection?.place?.label ||
+        data.places?.[0]?.placeName ||
+        'My Trip';
+
+      setDestination(destName);
 
       let parsedItinerary = [];
       if (data.trip_data) {
@@ -70,8 +112,7 @@ function ViewTrip() {
       setItinerary(parsedItinerary);
 
       const allLocations = [];
-      const mainLabel = data.user_selection?.location?.label;
-      if (mainLabel) allLocations.push({ query: mainLabel, type: 'main' });
+      if (destName) allLocations.push({ query: destName, type: 'main' });
 
       data.hotels?.forEach((h) =>
         allLocations.push({ query: h.hotelName || h.name || '', type: 'hotel' })
@@ -80,7 +121,8 @@ function ViewTrip() {
         allLocations.push({ query: p.placeName || p.name || '', type: 'place' })
       );
 
-      for (const loc of allLocations) await geocodeLocationGeoapify(loc.query, loc.type);
+      for (const loc of allLocations)
+        await geocodeLocationGeoapify(loc.query, loc.type);
     } catch {
       toast.error('Failed to load trip');
     }
@@ -108,64 +150,58 @@ function ViewTrip() {
     const el = document.getElementById('pdf-layout');
     if (!el) return;
 
-    const canvas = await html2canvas(el, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
+    el.style.position = 'absolute';
+    el.style.left = '-9999px';
+    el.style.display = 'block';
 
+    const canvas = await html2canvas(el, { scale: 2 });
+
+    el.style.display = 'none';
+    el.style.position = '';
+    el.style.left = '';
+
+    const imgData = canvas.toDataURL('');
     const pdf = new jsPDF('p', 'pt', 'a4');
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-
     const margin = 20;
     const usableWidth = pdfWidth - margin * 2;
     const usableHeight = pdfHeight - margin * 2;
 
     const imgWidth = usableWidth;
-    const imgHeight = (canvas.height * usableWidth) / canvas.width;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
     let heightLeft = imgHeight;
     let position = 0;
 
-    const drawBorder = () => {
-      pdf.setDrawColor(0, 0, 0);
-      pdf.setLineWidth(1);
-      pdf.rect(margin, margin, usableWidth, usableHeight);
-    };
-
-    drawBorder();
     pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
     heightLeft -= usableHeight;
 
     while (heightLeft > 0) {
       pdf.addPage();
-      drawBorder();
-      position = heightLeft - imgHeight;
-      pdf.addImage(imgData, 'PNG', margin, position + margin, imgWidth, imgHeight);
+      position = imgHeight - heightLeft;
+      pdf.addImage(imgData, 'PNG', margin, -position + margin, imgWidth, imgHeight);
       heightLeft -= usableHeight;
     }
 
-    const locationLabel = tripData?.user_selection?.location?.label || 'My Trip';
-    pdf.save(`${locationLabel}_itinerary.pdf`);
+    const safeName = destination.trim().replace(/[\/\\:*?"<>|]/g, '') || 'My Trip';
+    pdf.save(`${safeName} Trip.pdf`);
   };
 
   if (!tripData) return <p className="text-center mt-10">Loading trip details...</p>;
 
   return (
     <div className="p-10 md:px-20 lg:px-44 xl:px-56">
-      {/* Top Destination Image */}
-      {tripData?.user_selection?.location?.label?.trim() && (
+      {destination && (
         <div className="mb-6">
           <img
-            src={`https://source.unsplash.com/1200x600/?${tripData.user_selection.location.label}`}
-            alt={tripData.user_selection.location.label}
+            src={heroImage || '/fallback-image.jpg'}
+            alt={destination}
             className="w-full h-64 sm:h-80 md:h-96 object-cover rounded-lg"
-            onError={(e) => {
-              e.target.src = '/fallback-image.jpg';
-            }}
           />
         </div>
       )}
 
-      {/* Map */}
       {markers.length > 0 && (
         <div
           style={{
@@ -192,7 +228,6 @@ function ViewTrip() {
         </div>
       )}
 
-      {/* Download PDF button */}
       {itinerary.length > 0 && (
         <div className="mb-6">
           <button
@@ -204,7 +239,6 @@ function ViewTrip() {
         </div>
       )}
 
-      {/* Day-wise Itinerary */}
       {itinerary.length > 0 && (
         <div id="itinerary-section" className="mt-8">
           <h2 className="text-2xl font-bold mb-4">Itinerary 🗓️</h2>
@@ -229,24 +263,15 @@ function ViewTrip() {
         </div>
       )}
 
-      {/* Other sections */}
       <InfoSection trip={tripData} />
       <Hotels trip={tripData} />
       <PlacesToVisit trip={tripData} />
 
-      {/* Hidden PDF layout */}
-      <div
-        id="pdf-layout"
-        className="p-8"
-        style={{ display: 'none', width: '800px' }}
-      >
+      <div id="pdf-layout" className="p-8" style={{ display: 'none', width: '800px' }}>
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg mb-6">
-          <h1 className="text-3xl font-bold">
-            ✈️ {tripData?.user_selection?.location?.label || 'My Trip'}
-          </h1>
+          <h1 className="text-3xl font-bold">✈️ {destination}</h1>
           <p className="opacity-90">Wander AI – Smart Travel Itinerary</p>
         </div>
-
         {itinerary.map((day) => (
           <div key={day.day} className="mb-4 bg-white rounded-lg shadow p-4">
             <h2 className="text-xl font-semibold text-blue-600 mb-2">Day {day.day}</h2>
@@ -259,8 +284,6 @@ function ViewTrip() {
             ))}
           </div>
         ))}
-
-        <p className="text-center text-xs text-gray-400 mt-6">Generated by Wander AI</p>
       </div>
     </div>
   );

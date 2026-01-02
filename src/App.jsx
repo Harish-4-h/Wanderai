@@ -8,7 +8,6 @@ import 'leaflet/dist/leaflet.css';
 import './index.css';
 import { Button } from './components/ui/button.jsx';
 
-console.log("GEO_API_KEY:", import.meta.env.VITE_GEO_API_KEY);
 
 // Custom Components
 import Hero from './components/custom/Hero';
