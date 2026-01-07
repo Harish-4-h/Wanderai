@@ -123,17 +123,22 @@ function ViewTrip() {
             day: day.day,
             plan: (day.activities || []).map((act) => {
               if (typeof act === 'string') {
-                return { placeName: act, placeDetails: 'N/A', timeToTravel: 'N/A' };
+                return { placeName: act, placeDetails: act, timeToTravel: 'N/A' };
               } else if (act && typeof act === 'object') {
+                let details = act.description || act.activity || JSON.stringify(act);
+                const routeInfo = day.route ? `Route: ${day.route}` : '';
+                const accomInfo = day.accommodation ? `Accommodation: ${day.accommodation}` : '';
+                const distInfo = day.distance_km ? `Distance: ${day.distance_km} km` : '';
+                const extraInfo = [routeInfo, accomInfo, distInfo].filter(Boolean).join(' | ');
+                if (extraInfo) details += ` | ${extraInfo}`;
+
                 return {
                   placeName: act.activity ? String(act.activity) : JSON.stringify(act),
-                  placeDetails: `Route: ${day.route || day.location || 'N/A'} | Accommodation: ${
-                    day.accommodation || 'N/A'
-                  } | Distance: ${day.distance_km || 'N/A'} km`,
+                  placeDetails: details,
                   timeToTravel: act.time ? String(act.time) : 'N/A',
                 };
               } else {
-                return { placeName: String(act), placeDetails: 'N/A', timeToTravel: 'N/A' };
+                return { placeName: String(act), placeDetails: String(act), timeToTravel: 'N/A' };
               }
             }),
           }));
@@ -159,19 +164,28 @@ function ViewTrip() {
 
   const geocodeLocationGeoapify = async (query, type) => {
     if (!query) return;
-    const res = await fetch(
-      `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(
-        query
-      )}&apiKey=${GEOAPIFY_KEY}`
-    );
-    const data = await res.json();
-    if (data.features?.length) {
-      const coords = [
-        data.features[0].properties.lat,
-        data.features[0].properties.lon,
-      ];
-      if (type === 'main') setMapCoords(coords);
-      setMarkers((p) => [...p, { coords, label: query, type }]);
+    try {
+      const res = await fetch(
+        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(
+          query
+        )}&apiKey=${GEOAPIFY_KEY}`
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.features?.length) {
+        const coords = [
+          data.features[0].properties.lat,
+          data.features[0].properties.lon,
+        ];
+        if (type === 'main') setMapCoords(coords);
+        setMarkers((p) => [...p, { coords, label: query, type }]);
+      } else {
+        if (type === 'main') setMapCoords([0, 0]);
+        setMarkers((p) => [...p, { coords: [0, 0], label: query, type }]);
+      }
+    } catch {
+      if (type === 'main') setMapCoords([0, 0]);
+      setMarkers((p) => [...p, { coords: [0, 0], label: query, type }]);
     }
   };
 
