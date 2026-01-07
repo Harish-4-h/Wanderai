@@ -112,7 +112,7 @@ function ViewTrip() {
 
       setDestination(destName);
 
-      // ----------- FIXED ITINERARY PARSING -----------
+      // ---------------- FIXED ITINERARY PARSING ----------------
       let parsedItinerary = [];
       if (data.trip_data) {
         const parsed =
@@ -121,13 +121,21 @@ function ViewTrip() {
         if (Array.isArray(parsed)) {
           parsedItinerary = parsed.map((day) => ({
             day: day.day,
-            plan: (day.activities || []).map((act) => ({
-              placeName: act,
-              placeDetails: `Route: ${day.route || day.location || 'N/A'} | Accommodation: ${
-                day.accommodation || 'N/A'
-              } | Distance: ${day.distance_km || 'N/A'} km`,
-              timeToTravel: 'N/A',
-            })),
+            plan: (day.activities || []).map((act) => {
+              if (typeof act === 'string') {
+                return { placeName: act, placeDetails: 'N/A', timeToTravel: 'N/A' };
+              } else if (act && typeof act === 'object') {
+                return {
+                  placeName: act.activity ? String(act.activity) : JSON.stringify(act),
+                  placeDetails: `Route: ${day.route || day.location || 'N/A'} | Accommodation: ${
+                    day.accommodation || 'N/A'
+                  } | Distance: ${day.distance_km || 'N/A'} km`,
+                  timeToTravel: act.time ? String(act.time) : 'N/A',
+                };
+              } else {
+                return { placeName: String(act), placeDetails: 'N/A', timeToTravel: 'N/A' };
+              }
+            }),
           }));
         }
       }
