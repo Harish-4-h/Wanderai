@@ -144,30 +144,39 @@ export default function CreateTrip() {
   }, [formData.startLocation, formData.location]);
 
   const OnGenerateTrip = async () => {
-    if (!formData.location || !formData.startLocation)
-      return toast.error("Select start & destination");
+  if (!formData.location || !formData.startLocation)
+    return toast.error("Select start & destination");
 
-    setLoading(true);
-    try {
-      const result = await generateTravelPlan(
-        `From ${formData.startLocation.label} to ${formData.location.label} by ${formData.transportMode}`,
-        Number(formData.noOfDays),
-        formData.traveler,
-        formData.budget
-      );
+  setLoading(true);
+  try {
+    const { data: { user } } = await supabase.auth.getUser(); // ✅ get current user
 
-      const { data } = await supabase.from("AITrips").insert({
-        user_selection: { ...formData, distance, duration },
-        trip_data: result
-      }).select().single();
+    const result = await generateTravelPlan(
+      `From ${formData.startLocation.label} to ${formData.location.label} by ${formData.transportMode}`,
+      Number(formData.noOfDays),
+      formData.traveler,
+      formData.budget
+    );
 
-      navigate(`/view-trip/${data.id}`);
-    } catch {
-      toast.error("Trip generation failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const { data } = await supabase.from("AITrips").insert({
+      user_id: user.id, // ✅ required for RLS
+      user_selection: { ...formData, distance, duration },
+      trip_data: result,
+      start_latitude: Number(formData.startLocation.lat),
+      start_longitude: Number(formData.startLocation.lon),
+      latitude: Number(formData.location.lat),
+      longitude: Number(formData.location.lon)
+    }).select().single();
+
+    navigate(`/view-trip/${data.id}`);
+  } catch (error) {
+    console.error(error); // ✅ fixed ReferenceError
+    toast.error("Trip generation failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const renderOptionCards = (options, selectedValue, fieldName) =>
     options.map(item => {
@@ -182,7 +191,6 @@ export default function CreateTrip() {
           style={{ position: 'relative', cursor: 'pointer' }}
           onClick={() => update(fieldName, value)}
         >
-          {/* Top-right checkbox */}
           <input
             type="checkbox"
             checked={isSelected}
@@ -212,14 +220,17 @@ export default function CreateTrip() {
       />
 
       <h1 className="text-2xl font-semibold mb-4">Share your travel preferences 🗺️🎀</h1>
+
       <OSMAutocomplete
         placeholder="Starting Location🎯"
         value={formData.startLocation?.label}
         onChange={v => update("startLocation", v)}
       />
+
       <div className='livebutton'>
         <Button variant="outline" onClick={useLiveLocation}>📍 Use Live Location🛰️📡</Button>
       </div>
+
       <OSMAutocomplete
         placeholder="Destination🚩"
         value={formData.location?.label}

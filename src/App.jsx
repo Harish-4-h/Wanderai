@@ -75,15 +75,18 @@ export default function Home() {
   const geocodeLocation = async (query) => {
     if (!query) return;
     try {
+      // Updated fetch URL with CORS-friendly proxy to prevent HTTP 403
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          query
+        `https://api.allorigins.win/get?url=${encodeURIComponent(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${query}`
         )}`
       );
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const data = await res.json();
+      const wrapped = await res.json();
+      const data = JSON.parse(wrapped.contents);
+
       if (data.length > 0) {
         setLocationsCache((prev) => ({
           ...prev,

@@ -41,7 +41,6 @@ function ViewTrip() {
     if (tripId) getTripData();
   }, [tripId]);
 
-  // Fetch multiple images from Unsplash
   useEffect(() => {
     const fetchImages = async () => {
       if (!destination) return;
@@ -62,7 +61,6 @@ function ViewTrip() {
     fetchImages();
   }, [destination]);
 
-  // Auto-slide every 5s
   useEffect(() => {
     if (!heroImages.length) return;
     const interval = setInterval(() => {
@@ -71,7 +69,6 @@ function ViewTrip() {
     return () => clearInterval(interval);
   }, [heroImages]);
 
-  // Swipe Handlers
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
   };
@@ -115,20 +112,22 @@ function ViewTrip() {
 
       setDestination(destName);
 
+      // ----------- FIXED ITINERARY PARSING -----------
       let parsedItinerary = [];
       if (data.trip_data) {
         const parsed =
           typeof data.trip_data === 'string' ? JSON.parse(data.trip_data) : data.trip_data;
 
-        if (Array.isArray(parsed.days)) {
-          parsedItinerary = parsed.days.map((day) => ({
+        if (Array.isArray(parsed)) {
+          parsedItinerary = parsed.map((day) => ({
             day: day.day,
-            plan:
-              day.places?.map((p) => ({
-                placeName: p.name || p.placeName || 'Unnamed Place',
-                placeDetails: p.about || 'No details available',
-                timeToTravel: p.time || 'N/A',
-              })) || [],
+            plan: (day.activities || []).map((act) => ({
+              placeName: act,
+              placeDetails: `Route: ${day.route || day.location || 'N/A'} | Accommodation: ${
+                day.accommodation || 'N/A'
+              } | Distance: ${day.distance_km || 'N/A'} km`,
+              timeToTravel: 'N/A',
+            })),
           }));
         }
       }
@@ -172,7 +171,6 @@ function ViewTrip() {
     const el = document.getElementById('pdf-layout');
     if (!el) return;
 
-    // Force all text to black for PDF
     const allElements = el.querySelectorAll('*');
     const originalColors = [];
     allElements.forEach((el, idx) => {
@@ -186,7 +184,6 @@ function ViewTrip() {
 
     const canvas = await html2canvas(el, { scale: 2 });
 
-    // Restore original colors
     allElements.forEach((el, idx) => {
       el.style.color = originalColors[idx];
     });
@@ -239,8 +236,6 @@ function ViewTrip() {
             alt={destination}
             className="w-full h-64 sm:h-80 md:h-96 object-cover rounded-lg transition-all duration-700"
           />
-
-          {/* Prev/Next Buttons */}
           <button
             onClick={() =>
               setCurrentImageIdx((prev) => (prev - 1 + heroImages.length) % heroImages.length)
@@ -255,8 +250,6 @@ function ViewTrip() {
           >
             ›
           </button>
-
-          {/* Dots */}
           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
             {heroImages.map((_, idx) => (
               <span

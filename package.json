@@ -19,8 +19,14 @@
     "transform": {
       "^.+\\.(js|jsx)$": "babel-jest"
     },
-    "moduleFileExtensions": ["js", "jsx"],
-    "collectCoverageFrom": ["src/**/*.{js,jsx}", "!src/**/*.d.ts"]
+    "moduleFileExtensions": [
+      "js",
+      "jsx"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}",
+      "!src/**/*.d.ts"
+    ]
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
@@ -31,16 +37,17 @@
     "@radix-ui/react-popover": "^1.1.1",
     "@radix-ui/react-slot": "^1.1.0",
     "@react-oauth/google": "^0.12.2",
-    "@supabase/supabase-js": "^2.87.1",
+    "@supabase/supabase-js": "^2.90.0",
     "axios": "^1.13.2",
     "class-variance-authority": "^0.7.0",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
     "firebase": "^12.6.0",
     "html2canvas": "^1.4.1",
-    "jspdf": "^3.0.4",
+    "jspdf": "^4.0.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.407.0",
+    "node-fetch": "^3.3.2",
     "openai": "^6.10.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
