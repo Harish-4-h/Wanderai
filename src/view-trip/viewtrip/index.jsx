@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/service/supabaseClient';
@@ -27,6 +27,8 @@ const UNSPLASH_ACCESS_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
 
 function ViewTrip() {
   const { tripId } = useParams();
+
+  // -------------------- ALL HOOKS AT TOP --------------------
   const [tripData, setTripData] = useState(null);
   const [mapCoords, setMapCoords] = useState([13.0827, 80.2707]);
   const [markers, setMarkers] = useState([]);
@@ -34,16 +36,20 @@ function ViewTrip() {
   const [destination, setDestination] = useState('My Trip');
   const [heroImages, setHeroImages] = useState([]);
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
+
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
+  const memoizedTrip = useMemo(() => ({ ...tripData, itinerary }), [tripData, itinerary]);
+
+  // -------------------- EFFECTS --------------------
   useEffect(() => {
     if (tripId) getTripData();
   }, [tripId]);
 
   useEffect(() => {
+    if (!destination) return;
     const fetchImages = async () => {
-      if (!destination) return;
       try {
         const res = await fetch(
           `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
@@ -69,38 +75,27 @@ function ViewTrip() {
     return () => clearInterval(interval);
   }, [heroImages]);
 
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-  const handleTouchMove = (e) => {
-    touchEndX.current = e.touches[0].clientX;
-  };
+  // -------------------- TOUCH HANDLERS --------------------
+  const handleTouchStart = (e) => (touchStartX.current = e.touches[0].clientX);
+  const handleTouchMove = (e) => (touchEndX.current = e.touches[0].clientX);
   const handleTouchEnd = () => {
     const delta = touchStartX.current - touchEndX.current;
-    if (delta > 50) {
-      setCurrentImageIdx((prev) => (prev + 1) % heroImages.length);
-    } else if (delta < -50) {
+    if (delta > 50) setCurrentImageIdx((prev) => (prev + 1) % heroImages.length);
+    else if (delta < -50)
       setCurrentImageIdx((prev) => (prev - 1 + heroImages.length) % heroImages.length);
-    }
   };
 
+  // -------------------- DATA FETCH --------------------
   const getTripData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('AITrips')
-        .select('*')
-        .eq('id', tripId)
-        .single();
-
+      const { data, error } = await supabase.from('AITrips').select('*').eq('id', tripId).single();
       if (error) throw error;
       if (!data) return toast.error('Trip not found');
 
       setTripData(data);
 
       const rawSelection =
-        typeof data.user_selection === 'string'
-          ? JSON.parse(data.user_selection)
-          : data.user_selection;
+        typeof data.user_selection === 'string' ? JSON.parse(data.user_selection) : data.user_selection;
 
       const destName =
         rawSelection?.destination?.label ||
@@ -109,37 +104,33 @@ function ViewTrip() {
         rawSelection?.place?.label ||
         data.places?.[0]?.placeName ||
         'My Trip';
-
       setDestination(destName);
 
-      // ---------------- FIXED ITINERARY PARSING ----------------
+      // -------------------- FIXED ITINERARY PARSING --------------------
       let parsedItinerary = [];
       if (data.trip_data) {
-        const parsed =
-          typeof data.trip_data === 'string' ? JSON.parse(data.trip_data) : data.trip_data;
-
+        const parsed = typeof data.trip_data === 'string' ? JSON.parse(data.trip_data) : data.trip_data;
         if (Array.isArray(parsed)) {
           parsedItinerary = parsed.map((day) => ({
             day: day.day,
             plan: (day.activities || []).map((act) => {
-              if (typeof act === 'string') {
-                return { placeName: act, placeDetails: act, timeToTravel: 'N/A' };
-              } else if (act && typeof act === 'object') {
+              if (typeof act === 'string') return { placeName: act, placeDetails: act, timeToTravel: 'N/A' };
+              else if (act && typeof act === 'object') {
                 let details = act.description || act.activity || JSON.stringify(act);
-                const routeInfo = day.route ? `Route: ${day.route}` : '';
-                const accomInfo = day.accommodation ? `Accommodation: ${day.accommodation}` : '';
-                const distInfo = day.distance_km ? `Distance: ${day.distance_km} km` : '';
-                const extraInfo = [routeInfo, accomInfo, distInfo].filter(Boolean).join(' | ');
+                const extraInfo = [
+                  day.route ? `Route: ${day.route}` : '',
+                  day.accommodation ? `Accommodation: ${day.accommodation}` : '',
+                  day.distance_km ? `Distance: ${day.distance_km} km` : '',
+                ]
+                  .filter(Boolean)
+                  .join(' | ');
                 if (extraInfo) details += ` | ${extraInfo}`;
-
                 return {
                   placeName: act.activity ? String(act.activity) : JSON.stringify(act),
                   placeDetails: details,
                   timeToTravel: act.time ? String(act.time) : 'N/A',
                 };
-              } else {
-                return { placeName: String(act), placeDetails: String(act), timeToTravel: 'N/A' };
-              }
+              } else return { placeName: String(act), placeDetails: String(act), timeToTravel: 'N/A' };
             }),
           }));
         }
@@ -148,13 +139,8 @@ function ViewTrip() {
 
       const allLocations = [];
       if (destName) allLocations.push({ query: destName, type: 'main' });
-
-      data.hotels?.forEach((h) =>
-        allLocations.push({ query: h.hotelName || h.name || '', type: 'hotel' })
-      );
-      data.places?.forEach((p) =>
-        allLocations.push({ query: p.placeName || p.name || '', type: 'place' })
-      );
+      data.hotels?.forEach((h) => allLocations.push({ query: h.hotelName || h.name || '', type: 'hotel' }));
+      data.places?.forEach((p) => allLocations.push({ query: p.placeName || p.name || '', type: 'place' }));
 
       for (const loc of allLocations) await geocodeLocationGeoapify(loc.query, loc.type);
     } catch {
@@ -166,17 +152,12 @@ function ViewTrip() {
     if (!query) return;
     try {
       const res = await fetch(
-        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(
-          query
-        )}&apiKey=${GEOAPIFY_KEY}`
+        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(query)}&apiKey=${GEOAPIFY_KEY}`
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.features?.length) {
-        const coords = [
-          data.features[0].properties.lat,
-          data.features[0].properties.lon,
-        ];
+        const coords = [data.features[0].properties.lat, data.features[0].properties.lon];
         if (type === 'main') setMapCoords(coords);
         setMarkers((p) => [...p, { coords, label: query, type }]);
       } else {
@@ -189,6 +170,7 @@ function ViewTrip() {
     }
   };
 
+  // -------------------- PDF DOWNLOAD --------------------
   const downloadPDF = async () => {
     const el = document.getElementById('pdf-layout');
     if (!el) return;
@@ -349,7 +331,7 @@ function ViewTrip() {
 
       <InfoSection trip={tripData} />
       <Hotels trip={tripData} />
-      <PlacesToVisit trip={tripData} />
+      <PlacesToVisit trip={memoizedTrip} />
 
       <div id="pdf-layout" className="p-8" style={{ display: 'none', width: '800px' }}>
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg mb-6">
@@ -374,3 +356,5 @@ function ViewTrip() {
 }
 
 export default ViewTrip;
+
+// Total lines: 302

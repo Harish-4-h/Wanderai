@@ -8,7 +8,6 @@ import 'leaflet/dist/leaflet.css';
 import './index.css';
 import { Button } from './components/ui/button.jsx';
 
-
 // Custom Components
 import Hero from './components/custom/Hero';
 import SVGAnimation from './components/custom/SVGAnimation';
@@ -42,7 +41,6 @@ export default function Home() {
 
       if (error) throw error;
 
-      // Parse user_selection JSON strings
       const parsedTrips = data.map((trip) => ({
         ...trip,
         user_selection:
@@ -53,7 +51,6 @@ export default function Home() {
 
       setTrips(parsedTrips);
 
-      // Fetch coordinates for all unique locations
       const uniqueLocations = [
         ...new Set(
           parsedTrips
@@ -71,21 +68,26 @@ export default function Home() {
     }
   };
 
-  // ✅ Safe geocoding with fallback coordinates
+  // ✅ Stable Nominatim fetch (no proxy, required headers)
   const geocodeLocation = async (query) => {
     if (!query) return;
+
     try {
-      // Updated fetch URL with CORS-friendly proxy to prevent HTTP 403
       const res = await fetch(
-        `https://api.allorigins.win/get?url=${encodeURIComponent(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${query}`
-        )}`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          query
+        )}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'WanderAI/1.0 (wanderai.app)',
+          },
+        }
       );
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const wrapped = await res.json();
-      const data = JSON.parse(wrapped.contents);
+      const data = await res.json();
 
       if (data.length > 0) {
         setLocationsCache((prev) => ({
@@ -93,12 +95,10 @@ export default function Home() {
           [query]: [parseFloat(data[0].lat), parseFloat(data[0].lon)],
         }));
       } else {
-        console.warn(`No geocoding results for ${query}`);
         setLocationsCache((prev) => ({ ...prev, [query]: [0, 0] }));
       }
     } catch (err) {
       console.error('Geocoding error:', err);
-      // Fallback coordinates so map still renders
       setLocationsCache((prev) => ({ ...prev, [query]: [0, 0] }));
     }
   };
@@ -125,7 +125,9 @@ export default function Home() {
               <p className="text-sm text-gray-500 mt-1">
                 {userSelection.noOfDays || '—'} days • {userSelection.budget || '—'}
               </p>
-              <p className="text-sm text-gray-500">{userSelection.traveler || '—'}</p>
+              <p className="text-sm text-gray-500">
+                {userSelection.traveler || '—'}
+              </p>
 
               {coords && (
                 <div
@@ -147,12 +149,11 @@ export default function Home() {
                     zoomControl={false}
                     attributionControl={false}
                   >
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution="&copy; OpenStreetMap contributors"
-                    />
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <Marker position={coords}>
-                      <Popup>{userSelection.location?.label || 'Unknown'}</Popup>
+                      <Popup>
+                        {userSelection.location?.label || 'Unknown'}
+                      </Popup>
                     </Marker>
                   </MapContainer>
                 </div>
