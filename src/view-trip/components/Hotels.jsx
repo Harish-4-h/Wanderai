@@ -1,34 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { FaMapLocationDot } from 'react-icons/fa6';
+import React, { useState, useEffect } from "react";
+import { FaMapLocationDot } from "react-icons/fa6";
 
-function PlaceCardItem({ place }) {
-  const [photoUrl, setPhotoUrl] = useState('');
+function Hotels({ place }) {
+  const [photoUrl, setPhotoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const GEOAPIFY_API_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY;
+  const GEOAPIFY_API_KEY = import.meta.env.VITE_GEO_API_KEY;
 
   useEffect(() => {
-    if (place?.placeName) fetchPlaceImage();
+    if (place?.placeName) {
+      generateSafeImage();
+    }
   }, [place]);
 
-  const fetchPlaceImage = async () => {
+  const generateSafeImage = () => {
     setIsLoading(true);
+
     try {
-      const query = place?.placeName || 'travel';
-      const res = await fetch(
-        `https://api.geoapify.com/v1/images/search?text=${encodeURIComponent(
-          query
-        )}&type=photo&format=json&apiKey=${GEOAPIFY_API_KEY}&limit=1`
-      );
-      const data = await res.json();
-      const firstImage = data?.features?.[0];
-      setPhotoUrl(
-        firstImage?.properties?.url ||
-          'https://via.placeholder.com/160x160/e0f2fe/0891b2?text=No+Image'
-      );
+      // Use Geoapify static map URL directly (CORS-safe, no fetch)
+      const staticImageUrl = `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=320&height=320&center=geo:${encodeURIComponent(
+        place.placeName || "travel"
+      )}&zoom=14&apiKey=${GEOAPIFY_API_KEY}`;
+
+      setPhotoUrl(staticImageUrl);
     } catch (err) {
-      console.error('Error fetching place image:', err);
-      setPhotoUrl('https://via.placeholder.com/160x160/e0f2fe/0891b2?text=No+Image');
+      console.error("Image fallback used:", err);
+      setPhotoUrl(
+        "https://via.placeholder.com/160x160/e0f2fe/0891b2?text=No+Image"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +46,7 @@ function PlaceCardItem({ place }) {
   return (
     <a
       href={`https://my.maps.geoapify.com/?text=${encodeURIComponent(
-        place.placeName || ''
+        place.placeName || ""
       )}`}
       target="_blank"
       rel="noopener noreferrer"
@@ -63,11 +62,11 @@ function PlaceCardItem({ place }) {
             ) : (
               <img
                 src={photoUrl}
-                alt={place.placeName || 'Place'}
+                alt={place.placeName || "Place"}
                 className="w-full md:w-[160px] h-[160px] object-cover group-hover:scale-110 transition-transform duration-300"
                 onError={(e) =>
                   (e.target.src =
-                    'https://via.placeholder.com/160x160/e0f2fe/0891b2?text=No+Image')
+                    "https://via.placeholder.com/160x160/e0f2fe/0891b2?text=No+Image")
                 }
               />
             )}
@@ -76,18 +75,18 @@ function PlaceCardItem({ place }) {
 
           <div className="flex-1 space-y-3">
             <h3 className="font-bold text-lg text-gray-800 group-hover:text-sky-700 transition-colors leading-tight">
-              {place.placeName || 'Place name not available'}
+              {place.placeName || "Place name not available"}
             </h3>
 
             <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">
-              {place.placeDetails || 'No place description available'}
+              {place.placeDetails || "No place description available"}
             </p>
 
             <div className="flex items-center justify-between pt-2">
               <div className="flex items-center gap-2 px-3 py-1 bg-sky-50 rounded-full">
                 <span className="text-sky-500">⏱️</span>
                 <span className="text-sm font-medium text-sky-700">
-                  {place.timeToTravel || 'Not specified'}
+                  {place.timeToTravel || "Not specified"}
                 </span>
               </div>
               <button className="bg-gradient-to-r from-sky-500 to-cyan-500 p-2 rounded-full shadow-md hover:shadow-lg">
@@ -101,4 +100,4 @@ function PlaceCardItem({ place }) {
   );
 }
 
-export default PlaceCardItem;
+export default Hotels;

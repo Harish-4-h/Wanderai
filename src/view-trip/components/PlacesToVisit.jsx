@@ -34,32 +34,55 @@ function PlacesToVisit({ trip }) {
   const inFlightRef = useRef(false);
   const fetchedDestinationsRef = useRef(new Set());
 
-  // Parse destination once
+  // Parse destination once (STABLE)
   const destination = useMemo(() => {
     try {
       const selection =
         typeof trip?.user_selection === "string"
           ? JSON.parse(trip.user_selection)
           : trip?.user_selection;
-      return selection?.destination?.label || selection?.location?.label || selection?.place?.label || null;
+      return (
+        selection?.destination?.label ||
+        selection?.location?.label ||
+        selection?.place?.label ||
+        null
+      );
     } catch {
       return null;
     }
-  }, [trip]);
+  }, [trip?.user_selection]);
 
   const fallbackPlaces = useMemo(
     () => [
-      { placeName: "Eiffel Tower", placeDetails: "Iconic landmark in Paris", timeToTravel: "2 hrs" },
-      { placeName: "Louvre Museum", placeDetails: "Famous art museum", timeToTravel: "3 hrs" },
-      { placeName: "Notre Dame Cathedral", placeDetails: "Historic cathedral", timeToTravel: "1.5 hrs" },
-      { placeName: "Montmartre", placeDetails: "Artistic district with city views", timeToTravel: "2 hrs" },
+      {
+        placeName: "Eiffel Tower",
+        placeDetails: "Iconic landmark in Paris",
+        timeToTravel: "2 hrs",
+      },
+      {
+        placeName: "Louvre Museum",
+        placeDetails: "Famous art museum",
+        timeToTravel: "3 hrs",
+      },
+      {
+        placeName: "Notre Dame Cathedral",
+        placeDetails: "Historic cathedral",
+        timeToTravel: "1.5 hrs",
+      },
+      {
+        placeName: "Montmartre",
+        placeDetails: "Artistic district with city views",
+        timeToTravel: "2 hrs",
+      },
     ],
     []
   );
 
-  // Fetch GPT places only once per destination
+  // Fetch GPT places only once per destination (HARD LOCKED)
   const fetchPlacesFromGPT = async () => {
-    if (!destination || gptPlacesCache[destination] || fetchedDestinationsRef.current.has(destination)) return;
+    if (!destination) return;
+    if (gptPlacesCache[destination]) return;
+    if (fetchedDestinationsRef.current.has(destination)) return;
     if (inFlightRef.current) return;
 
     inFlightRef.current = true;
@@ -78,8 +101,18 @@ No text, no markdown, no explanation.
 Destination: ${destination}
 `;
 
-      const response = await generateGPTResponse(prompt);
-      const places = Array.isArray(response) && response.length > 0 ? response : fallbackPlaces;
+      const rawResponse = await generateGPTResponse(prompt);
+
+      let places;
+      try {
+        const parsed =
+          typeof rawResponse === "string"
+            ? JSON.parse(rawResponse)
+            : rawResponse;
+        places = Array.isArray(parsed) && parsed.length > 0 ? parsed : fallbackPlaces;
+      } catch {
+        places = fallbackPlaces;
+      }
 
       const placesWithImages = await Promise.all(
         places.map(async (place) => ({
@@ -88,7 +121,11 @@ Destination: ${destination}
         }))
       );
 
-      setGptPlacesCache((prev) => ({ ...prev, [destination]: placesWithImages }));
+      setGptPlacesCache((prev) => ({
+        ...prev,
+        [destination]: placesWithImages,
+      }));
+
       fetchedDestinationsRef.current.add(destination);
     } catch (err) {
       console.error("GPT fetch error:", err);
@@ -101,7 +138,11 @@ Destination: ${destination}
         }))
       );
 
-      setGptPlacesCache((prev) => ({ ...prev, [destination]: fallbackWithImages }));
+      setGptPlacesCache((prev) => ({
+        ...prev,
+        [destination]: fallbackWithImages,
+      }));
+
       fetchedDestinationsRef.current.add(destination);
     } finally {
       inFlightRef.current = false;
@@ -116,37 +157,49 @@ Destination: ${destination}
   // Stable itinerary array
   const itineraryArray = useMemo(() => {
     if (!trip?.itinerary) return [];
-    if (Array.isArray(trip.itinerary.dailyPlans)) return trip.itinerary.dailyPlans;
+    if (Array.isArray(trip.itinerary.dailyPlans))
+      return trip.itinerary.dailyPlans;
     if (Array.isArray(trip.itinerary)) return trip.itinerary;
     return Object.values(trip.itinerary);
-  }, [trip]);
+  }, [trip?.itinerary]);
 
-  // Stable display array
+  // Stable display array (NO RE-RENDER LOOP)
   const displayArray = useMemo(() => {
     const places = gptPlacesCache[destination] || fallbackPlaces;
+
     if (itineraryArray.length > 0) {
       return itineraryArray.map((item) => ({
         ...item,
-        plan: item.plan || places,
+        plan: item.plan && item.plan.length > 0 ? item.plan : places,
       }));
     }
+
     return [{ day: "Tourist Attractions", plan: places }];
   }, [itineraryArray, gptPlacesCache, destination, fallbackPlaces]);
 
   return (
     <div className="mt-5">
-      <h2 className="font-bold text-2xl text-cyan-500 mb-6">Places To Visit</h2>
+      <h2 className="font-bold text-2xl text-cyan-500 mb-6">
+        Places To Visit
+      </h2>
 
       {loadingGPT && (
-        <div className="text-center py-8 text-gray-500">Fetching places and images...</div>
+        <div className="text-center py-8 text-gray-500">
+          Fetching places and images...
+        </div>
       )}
 
-      {error && <div className="text-center py-4 text-red-500">{error}</div>}
+      {error && (
+        <div className="text-center py-4 text-red-500">{error}</div>
+      )}
 
       <div className="space-y-8">
         {displayArray.map((item, index) => (
           <div key={index} className="bg-white p-6 rounded-xl">
-            <h3 className="font-bold text-xl mb-4">{item.day || `Day ${index + 1}`}</h3>
+            <h3 className="font-bold text-xl mb-4">
+              {item.day || `Day ${index + 1}`}
+            </h3>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {item.plan?.map((place, i) => (
                 <PlaceCardItem
