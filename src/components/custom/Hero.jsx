@@ -36,7 +36,12 @@ function Hero() {
             <button className="px-8 py-3 rounded-full bg-blue-500 text-white font-semibold hover:bg-blue-600 transition">
               Start Your Journey Now, It's Free!
             </button>
+            <br></br>
+         
           </Link>
+          <p className="text-xl text-[#FFFFFF] text-center max-w-3xl">
+            The Most Advanced AI Travel Planner on the Web!🌐🤖
+          </p>
 
         </div>
       </div>
