@@ -33,7 +33,7 @@ const PrivacyPolicy = () => {
           <section className="privacy-section welcome-section">
             <h2>Your Trust, Our Commitment</h2>
             <p>
-              At WanderAI, we believe that amazing journeys start with trust. This privacy policy 
+              At Navoria!🐉, we believe that amazing journeys start with trust. This privacy policy 
               explains how we collect, use, and protect your information while our AI creates 
               personalized travel experiences just for you. Your privacy is not just a policy 
               - it's a promise.
@@ -245,7 +245,7 @@ const PrivacyPolicy = () => {
             className="back-btn"
             onClick={() => window.history.back()}
           >
-            ← Back to WanderAI
+            ← Back to Navoria!🐉
           </button>
         </div>
       </div>

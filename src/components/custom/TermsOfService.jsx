@@ -10,7 +10,7 @@ const TermsOfService = () => {
           <div className="header-content">
             <h1 className="page-title">Terms of Service</h1>
             <p className="page-subtitle">
-              Your journey with WanderAI starts with understanding our terms
+              Your journey with Navoria!🐉 starts with understanding our terms
             </p>
             <div className="last-updated">
               Last updated: January 2026
@@ -30,9 +30,9 @@ const TermsOfService = () => {
           
           {/* Welcome Section */}
           <section className="terms-section welcome-section">
-            <h2>Welcome to WanderAI</h2>
+            <h2>Welcome to Navoria!🐉</h2>
             <p>
-              Welcome to WanderAI, where dreams meet technology to craft your perfect journey! 
+              Welcome to Navoria!🐉, where dreams meet technology to craft your perfect journey! 
               By using our AI-powered travel planning service, you agree to these terms of service. 
               We're excited to help you explore the world with personalized itineraries tailored 
               to your interests and budget.
@@ -101,7 +101,7 @@ const TermsOfService = () => {
           <section className="terms-section">
             <h2>💡 Intellectual Property</h2>
             <p>
-              WanderAI and its AI-generated content, algorithms, and platform design are our 
+              Navoria!🐉 and its AI-generated content, algorithms, and platform design are our 
               intellectual property. You may use our service for personal travel planning but 
               may not reproduce, distribute, or create derivative works without permission.
             </p>
@@ -111,7 +111,7 @@ const TermsOfService = () => {
           <section className="terms-section">
             <h2>⚖️ Limitation of Liability</h2>
             <p>
-              WanderAI is a planning tool and does not handle bookings or reservations. We are 
+              Navoria!🐉 is a planning tool and does not handle bookings or reservations. We are 
               not responsible for travel arrangements, changes in plans, or experiences during 
               your travels. Our liability is limited to the extent permitted by law.
             </p>
@@ -122,7 +122,7 @@ const TermsOfService = () => {
             <h2>🔄 Updates to Terms</h2>
             <p>
               We may update these terms to reflect changes in our AI services or legal requirements. 
-              Continued use of WanderAI constitutes acceptance of updated terms. We'll notify users 
+              Continued use of Navoria!🐉 constitutes acceptance of updated terms. We'll notify users 
               of significant changes through our platform.
             </p>
           </section>
@@ -152,7 +152,7 @@ const TermsOfService = () => {
             className="back-btn"
             onClick={() => window.history.back()}
           >
-            ← Back to WanderAI
+            ← Back to Navoria!🐉
           </button>
         </div>
       </div>

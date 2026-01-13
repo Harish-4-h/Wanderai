@@ -16,7 +16,7 @@ function Hero() {
           <h1 className="mt-16 text-center">
             <span className="font-extrabold text-[40px]">
               <span className="text-[#FFFAFA]">
-                Wander the world with WanderAI: Made By Harish!💗🧸
+                Wander the world with Navoria!🐉: Made By Harish!💗🧸
               </span>
               <hr></hr>
               <hr></hr>

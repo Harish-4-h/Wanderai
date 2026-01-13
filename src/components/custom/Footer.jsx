@@ -77,7 +77,7 @@ const Footer = () => {
           <div className="footer-bottom-content">
             <div className="copyright-section">
               <p className="copyright-text">
-                © 2025 Wander AI - Where your tech dreams came true ✨
+                © 2026 Wander AI - Where your tech dreams came true ✨
               </p>
             </div>
             <footer className="credits-footer">

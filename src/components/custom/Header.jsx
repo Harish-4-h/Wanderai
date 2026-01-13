@@ -23,7 +23,7 @@ function Header() {
       <Link to="/">
         <img
           src="/logo.svg"
-          alt="WanderAI Logo"
+          alt="Navoria!🐉 Logo"
           className="header-logo"
         />
       </Link>
