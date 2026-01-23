@@ -196,39 +196,72 @@ function ViewTrip() {
     else if (delta < -50) setCurrentImageIdx((prev) => (prev - 1 + heroImages.length) % heroImages.length);
   };
 
-  // -------------------- CLEAN PDF DOWNLOAD USING jsPDF + autoTable --------------------
+  // -------------------- PDF DOWNLOAD WITH IMAGE --------------------
   const downloadPDF = () => {
     if (!itinerary.length) return;
     const pdf = new jsPDF('p', 'pt', 'a4');
+    const margin = 20;
+    const pdfWidth = pdf.internal.pageSize.getWidth() - margin * 2;
 
-    pdf.setFontSize(18);
-    pdf.text(`✈️ ${destination}`, 40, 40);
-    pdf.setFontSize(12);
-    pdf.text('Wander AI – Smart Travel Itinerary', 40, 60);
+    // Add hero image
+    if (heroImages[currentImageIdx]) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = heroImages[currentImageIdx];
+      img.onload = () => {
+        const imgHeight = (img.height * pdfWidth) / img.width;
+        pdf.addImage(img, 'JPEG', margin, margin, pdfWidth, imgHeight);
 
-    let startY = 80;
+        // Add itinerary table below image
+        let startY = imgHeight + margin + 10;
 
-    itinerary.forEach((day) => {
-      pdf.setFontSize(14);
-      pdf.setTextColor(30, 144, 255);
-      pdf.text(`Day ${day.day}`, 40, startY);
-      const rows = day.plan.map((p) => [p.placeName, p.placeDetails, p.timeToTravel]);
+        itinerary.forEach((day) => {
+          pdf.setFontSize(14);
+          pdf.setTextColor(30, 144, 255);
+          pdf.text(`Day ${day.day}`, margin, startY);
+          const rows = day.plan.map((p) => [p.placeName, p.placeDetails, p.timeToTravel]);
 
-      autoTable(pdf, {
-        startY: startY + 10,
-        head: [['Place', 'Details', 'Time']],
-        body: rows,
-        theme: 'grid',
-        styles: { fontSize: 10, cellPadding: 3 },
-        headStyles: { fillColor: [30, 144, 255], textColor: 255 },
-        margin: { left: 40, right: 40 },
+          autoTable(pdf, {
+            startY: startY + 10,
+            head: [['Place', 'Details', 'Time']],
+            body: rows,
+            theme: 'grid',
+            styles: { fontSize: 10, cellPadding: 3 },
+            headStyles: { fillColor: [30, 144, 255], textColor: 255 },
+            margin: { left: margin, right: margin },
+          });
+
+          startY = pdf.lastAutoTable.finalY + 20;
+        });
+
+        const safeName = destination.trim().replace(/[\/\\:*?"<>|]/g, '') || 'My Trip';
+        pdf.save(`${safeName} Trip.pdf`);
+      };
+    } else {
+      // fallback without image
+      let startY = margin + 20;
+      itinerary.forEach((day) => {
+        pdf.setFontSize(14);
+        pdf.setTextColor(30, 144, 255);
+        pdf.text(`Day ${day.day}`, margin, startY);
+        const rows = day.plan.map((p) => [p.placeName, p.placeDetails, p.timeToTravel]);
+
+        autoTable(pdf, {
+          startY: startY + 10,
+          head: [['Place', 'Details', 'Time']],
+          body: rows,
+          theme: 'grid',
+          styles: { fontSize: 10, cellPadding: 3 },
+          headStyles: { fillColor: [30, 144, 255], textColor: 255 },
+          margin: { left: margin, right: margin },
+        });
+
+        startY = pdf.lastAutoTable.finalY + 20;
       });
 
-      startY = pdf.lastAutoTable.finalY + 20;
-    });
-
-    const safeName = destination.trim().replace(/[\/\\:*?"<>|]/g, '') || 'My Trip';
-    pdf.save(`${safeName} Trip.pdf`);
+      const safeName = destination.trim().replace(/[\/\\:*?"<>|]/g, '') || 'My Trip';
+      pdf.save(`${safeName} Trip.pdf`);
+    }
   };
 
   if (!tripData) return <p className="text-center mt-10">Loading trip details...</p>;
