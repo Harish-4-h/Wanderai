@@ -78,46 +78,42 @@ function ViewTrip() {
 
       // -------------------- PARSE ITINERARY --------------------
       let parsedItinerary = [];
+
       if (data.trip_data) {
         const parsed =
           typeof data.trip_data === 'string' ? JSON.parse(data.trip_data) : data.trip_data;
 
         if (Array.isArray(parsed)) {
-          parsedItinerary = parsed.map((day) => ({
-            day: day.day,
-            plan: (day.activities || []).map((act) => {
-              if (typeof act === 'string') {
-                return { placeName: act, placeDetails: act, timeToTravel: 'N/A' };
-              } else if (act && typeof act === 'object') {
-                const details =
-                  act.description ||
-                  act.activity ||
-                  JSON.stringify(act) +
-                    [
-                      day.route ? `Route: ${day.route}` : '',
-                      day.accommodation ? `Accommodation: ${day.accommodation}` : '',
-                      day.distance_km ? `Distance: ${day.distance_km} km` : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' | ');
-                return {
-                  placeName: act.activity ? String(act.activity) : JSON.stringify(act),
-                  placeDetails: details,
-                  timeToTravel: act.time ? String(act.time) : 'N/A',
-                };
-              }
-              return { placeName: String(act), placeDetails: String(act), timeToTravel: 'N/A' };
-            }),
-          }));
+          // Determine if JSON is day-based or flat activity array
+          if (parsed[0]?.day && parsed[0]?.activities) {
+            // Day-based format
+            parsedItinerary = parsed.map((day) => ({
+              day: day.day || 'Day N/A',
+              plan: (day.activities || []).map((act) => formatActivity(act, day)),
+            }));
+          } else {
+            // Flat activity array format (Supabase JSON like you shared)
+            parsedItinerary = [
+              {
+                day: '1',
+                plan: parsed.map((act) => formatActivity(act)),
+              },
+            ];
+          }
         }
       }
+
       setItinerary(parsedItinerary);
 
       // -------------------- GEOCODE LOCATIONS --------------------
       const allLocations = [];
       if (destName) allLocations.push({ query: destName, type: 'main' });
-      data.hotels?.forEach((h) => allLocations.push({ query: h.hotelName || h.name || '', type: 'hotel' }));
-      data.places?.forEach((p) => allLocations.push({ query: p.placeName || p.name || '', type: 'place' }));
+      data.hotels?.forEach((h) =>
+        allLocations.push({ query: h.hotelName || h.name || '', type: 'hotel' })
+      );
+      data.places?.forEach((p) =>
+        allLocations.push({ query: p.placeName || p.name || '', type: 'place' })
+      );
 
       for (const loc of allLocations) {
         await geocodeLocation(loc.query, loc.type);
@@ -126,6 +122,32 @@ function ViewTrip() {
       toast.error('Failed to load trip');
     }
   }, [tripId]);
+
+  const formatActivity = (act, day = {}) => {
+    if (typeof act === 'string') {
+      return { placeName: act, placeDetails: act, timeToTravel: 'N/A' };
+    } else if (act && typeof act === 'object') {
+      const additionalDetails = [
+        day.route ? `Route: ${day.route}` : '',
+        day.accommodation ? `Accommodation: ${day.accommodation}` : '',
+        day.distance_km ? `Distance: ${day.distance_km} km` : '',
+      ]
+        .filter(Boolean)
+        .join(' | ');
+
+      return {
+        placeName: act.activity ? String(act.activity) : 'Unknown Place',
+        placeDetails:
+          act.details ||
+          act.description ||
+          act.activity ||
+          (JSON.stringify(act) + (additionalDetails ? ' | ' + additionalDetails : '')),
+        timeToTravel: act.time ? String(act.time) : 'N/A',
+      };
+    } else {
+      return { placeName: String(act), placeDetails: String(act), timeToTravel: 'N/A' };
+    }
+  };
 
   const geocodeLocation = async (query, type) => {
     if (!query) return;
@@ -138,7 +160,9 @@ function ViewTrip() {
 
     try {
       const res = await fetch(
-        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(query)}&apiKey=${GEOAPIFY_KEY}`
+        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(
+          query
+        )}&apiKey=${GEOAPIFY_KEY}`
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -156,43 +180,73 @@ function ViewTrip() {
     }
   };
 
-  // -------------------- FETCH REAL DESTINATION HERO IMAGES --------------------
+  // -------------------- FETCH REAL DESTINATION HERO IMAGES (FIXED) --------------------
   useEffect(() => {
-    if (!destination) return; // Skip if no valid destination
+    if (!destination) return;
+
     let isActive = true;
+
+    const preloadImages = async (urls) => {
+      const loaded = [];
+      for (const url of urls) {
+        await new Promise((res) => {
+          const img = new Image();
+          img.src = url;
+          img.onload = () => {
+            loaded.push(url);
+            res();
+          };
+          img.onerror = res; // skip broken images
+        });
+      }
+      return loaded;
+    };
 
     const fetchImages = async () => {
       try {
         const res = await fetch(
-          `https://api.unsplash.com/search/photos?query=${encodeURIComponent(destination)}&per_page=5&orientation=landscape`,
+          `https://api.unsplash.com/search/photos?query=${encodeURIComponent(
+            destination
+          )}&per_page=5&orientation=landscape`,
           { headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` } }
         );
         const data = await res.json();
-        const urls = data.results?.map((img) => img.urls.regular) || [];
+
+        let urls = data.results?.map((img) => img.urls?.regular).filter(Boolean) || [];
+        urls = await preloadImages(urls);
 
         if (!isActive) return;
         setHeroImages(urls.length ? urls : ['/fallback-image.jpg']);
+        setCurrentImageIdx(0); // reset to first image
       } catch {
-        if (isActive) setHeroImages(['/fallback-image.jpg']);
+        if (isActive) {
+          setHeroImages(['/fallback-image.jpg']);
+          setCurrentImageIdx(0);
+        }
       }
     };
 
     fetchImages();
-    return () => { isActive = false; };
+    return () => {
+      isActive = false;
+    };
   }, [destination]);
 
   useEffect(() => {
     if (!heroImages.length) return;
-    const interval = setInterval(() => setCurrentImageIdx((prev) => (prev + 1) % heroImages.length), 5000);
+    const interval = setInterval(
+      () => setCurrentImageIdx((prev) => (prev + 1) % heroImages.length),
+      5000
+    );
     return () => clearInterval(interval);
   }, [heroImages]);
 
   // -------------------- FETCH TRIP ON LOAD --------------------
-  useEffect(() => { 
-    if (tripId && !tripFetchedRef.current) { 
-      tripFetchedRef.current = true; 
-      getTripData(); 
-    } 
+  useEffect(() => {
+    if (tripId && !tripFetchedRef.current) {
+      tripFetchedRef.current = true;
+      getTripData();
+    }
   }, [tripId]);
 
   // -------------------- TOUCH HANDLERS --------------------
@@ -200,8 +254,10 @@ function ViewTrip() {
   const handleTouchMove = (e) => (touchEndX.current = e.touches[0].clientX);
   const handleTouchEnd = () => {
     const delta = touchStartX.current - touchEndX.current;
-    if (delta > 50) setCurrentImageIdx((prev) => (prev + 1) % heroImages.length);
-    else if (delta < -50) setCurrentImageIdx((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+    if (delta > 50)
+      setCurrentImageIdx((prev) => (prev + 1) % heroImages.length);
+    else if (delta < -50)
+      setCurrentImageIdx((prev) => (prev - 1 + heroImages.length) % heroImages.length);
   };
 
   // -------------------- PDF DOWNLOAD --------------------
@@ -235,25 +291,57 @@ function ViewTrip() {
       startY = pdf.lastAutoTable.finalY + 20;
     });
 
-    const safeName = destination.trim().replace(/[\/\\:*?"<>|]/g, '') || 'My Trip';
+    const safeName =
+      destination.trim().replace(/[\/\\:*?"<>|]/g, '') || 'My Trip';
     pdf.save(`${safeName} Trip.pdf`);
   };
 
-  if (!tripData) return <p className="text-center mt-10">Loading trip details...</p>;
+  if (!tripData)
+    return <p className="text-center mt-10">Loading trip details...</p>;
 
   return (
     <div className="p-10 md:px-20 lg:px-44 xl:px-56">
       {/* HERO IMAGES */}
       {destination && heroImages.length > 0 && (
-        <div className="mb-6 relative" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-          <img src={heroImages[currentImageIdx]} alt={destination} className="w-full h-64 sm:h-80 md:h-96 object-cover rounded-lg transition-all duration-700" />
-          <button onClick={() => setCurrentImageIdx((prev) => (prev - 1 + heroImages.length) % heroImages.length)}
-                  className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white px-3 py-1 rounded-full hover:bg-opacity-60">‹</button>
-          <button onClick={() => setCurrentImageIdx((prev) => (prev + 1) % heroImages.length)}
-                  className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white px-3 py-1 rounded-full hover:bg-opacity-60">›</button>
+        <div
+          className="mb-6 relative"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <img
+            src={heroImages[currentImageIdx]}
+            alt={destination}
+            onError={(e) => (e.target.src = '/fallback-image.jpg')}
+            className="w-full h-64 sm:h-80 md:h-96 object-cover rounded-lg transition-all duration-700"
+          />
+          <button
+            onClick={() =>
+              setCurrentImageIdx(
+                (prev) => (prev - 1 + heroImages.length) % heroImages.length
+              )
+            }
+            className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white px-3 py-1 rounded-full hover:bg-opacity-60"
+          >
+            ‹
+          </button>
+          <button
+            onClick={() =>
+              setCurrentImageIdx((prev) => (prev + 1) % heroImages.length)
+            }
+            className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black bg-opacity-40 text-white px-3 py-1 rounded-full hover:bg-opacity-60"
+          >
+            ›
+          </button>
           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
-            {heroImages.map((_, idx) => (
-              <span key={idx} onClick={() => setCurrentImageIdx(idx)} className={`w-3 h-3 rounded-full cursor-pointer transition-colors ${idx === currentImageIdx ? 'bg-white' : 'bg-gray-400'}`} />
+            {heroImages.map((url, idx) => (
+              <span
+                key={url}
+                onClick={() => setCurrentImageIdx(idx)}
+                className={`w-3 h-3 rounded-full cursor-pointer transition-colors ${
+                  idx === currentImageIdx ? 'bg-white' : 'bg-gray-400'
+                }`}
+              />
             ))}
           </div>
         </div>
@@ -261,12 +349,25 @@ function ViewTrip() {
 
       {/* MAP */}
       {markers.length > 0 && (
-        <div style={{ height: '400px', width: '100%', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px' }}>
+        <div
+          style={{
+            height: '400px',
+            width: '100%',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            marginBottom: '20px',
+          }}
+        >
           <MapContainer center={mapCoords} zoom={12} style={{ height: '100%', width: '100%' }}>
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="&copy; OpenStreetMap contributors"
+            />
             {markers.map((m, idx) => (
               <Marker key={idx} position={m.coords}>
-                <Popup>{m.label} {m.type === 'hotel' ? '🏨' : m.type === 'place' ? '📍' : '📌'}</Popup>
+                <Popup>
+                  {m.label} {m.type === 'hotel' ? '🏨' : m.type === 'place' ? '📍' : '📌'}
+                </Popup>
               </Marker>
             ))}
           </MapContainer>
@@ -276,7 +377,12 @@ function ViewTrip() {
       {/* PDF BUTTON */}
       {itinerary.length > 0 && (
         <div className="mb-6">
-          <button onClick={downloadPDF} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Download Itinerary PDF</button>
+          <button
+            onClick={downloadPDF}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Download Itinerary PDF
+          </button>
         </div>
       )}
 
@@ -285,16 +391,27 @@ function ViewTrip() {
         <div id="itinerary-section" className="mt-8">
           <h2 className="text-2xl font-bold mb-4">Itinerary 🗓️</h2>
           <div className="space-y-4">
-            {itinerary.map((day) => (
-              <div key={day.day} className="p-4 border rounded-lg shadow-sm bg-white">
+            {itinerary.map((day, i) => (
+              <div key={`day-${i}`} className="p-4 border rounded-lg shadow-sm bg-white">
                 <h3 className="font-semibold text-lg">Day {day.day}</h3>
-                {day.plan.length > 0 ? day.plan.map((place, idx) => (
-                  <div key={idx} className="mt-2">
-                    <strong>{place.placeName}</strong>
-                    <p className="text-gray-700">{place.placeDetails}</p>
-                    <p className="text-gray-500 text-sm">Time: {place.timeToTravel}</p>
-                  </div>
-                )) : <p className="text-gray-500 mt-2">No places available for this day.</p>}
+                {day.plan.length > 0 ? (
+                  day.plan.map((place) => (
+                    <div
+                      key={`${place.placeName}-${place.timeToTravel}`}
+                      className="mt-2"
+                    >
+                      <strong>{place.placeName}</strong>
+                      <p className="text-gray-700">{place.placeDetails}</p>
+                      <p className="text-gray-500 text-sm">
+                        Time: {place.timeToTravel}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 mt-2">
+                    No places available for this day.
+                  </p>
+                )}
               </div>
             ))}
           </div>
