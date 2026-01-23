@@ -32,7 +32,7 @@ function ViewTrip() {
   const [mapCoords, setMapCoords] = useState([13.0827, 80.2707]);
   const [markers, setMarkers] = useState([]);
   const [itinerary, setItinerary] = useState([]);
-  const [destination, setDestination] = useState('My Trip');
+  const [destination, setDestination] = useState('');
   const [heroImages, setHeroImages] = useState([]);
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
 
@@ -64,13 +64,15 @@ function ViewTrip() {
           ? JSON.parse(data.user_selection)
           : data.user_selection;
 
+      // Get the most specific destination name
       const destName =
         rawSelection?.destination?.label ||
         rawSelection?.location?.label ||
         rawSelection?.location?.name ||
         rawSelection?.place?.label ||
         data.places?.[0]?.placeName ||
-        'My Trip';
+        data.places?.[0]?.name ||
+        '';
 
       setDestination(destName);
 
@@ -154,9 +156,9 @@ function ViewTrip() {
     }
   };
 
-  // -------------------- SAFE UNSPLASH HERO IMAGES --------------------
+  // -------------------- FETCH REAL DESTINATION HERO IMAGES --------------------
   useEffect(() => {
-    if (!destination) return;
+    if (!destination) return; // Skip if no valid destination
     let isActive = true;
 
     const fetchImages = async () => {
@@ -165,17 +167,8 @@ function ViewTrip() {
           `https://api.unsplash.com/search/photos?query=${encodeURIComponent(destination)}&per_page=5&orientation=landscape`,
           { headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` } }
         );
-
-        const text = await res.text(); // parse text safely
-        let urls = [];
-
-        try {
-          const json = JSON.parse(text);
-          urls = json.results?.map((img) => img.urls.regular) || [];
-        } catch {
-          // JSON parse failed (likely Rate Limit), fallback
-          urls = [];
-        }
+        const data = await res.json();
+        const urls = data.results?.map((img) => img.urls.regular) || [];
 
         if (!isActive) return;
         setHeroImages(urls.length ? urls : ['/fallback-image.jpg']);
@@ -195,7 +188,12 @@ function ViewTrip() {
   }, [heroImages]);
 
   // -------------------- FETCH TRIP ON LOAD --------------------
-  useEffect(() => { if (tripId && !tripFetchedRef.current) { tripFetchedRef.current = true; getTripData(); } }, [tripId]);
+  useEffect(() => { 
+    if (tripId && !tripFetchedRef.current) { 
+      tripFetchedRef.current = true; 
+      getTripData(); 
+    } 
+  }, [tripId]);
 
   // -------------------- TOUCH HANDLERS --------------------
   const handleTouchStart = (e) => (touchStartX.current = e.touches[0].clientX);
@@ -206,7 +204,7 @@ function ViewTrip() {
     else if (delta < -50) setCurrentImageIdx((prev) => (prev - 1 + heroImages.length) % heroImages.length);
   };
 
-  // -------------------- CLEAN PDF DOWNLOAD USING jsPDF + autoTable --------------------
+  // -------------------- PDF DOWNLOAD --------------------
   const downloadPDF = () => {
     if (!itinerary.length) return;
     const pdf = new jsPDF('p', 'pt', 'a4');
