@@ -9,7 +9,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import autoTable from 'jspdf-autotable';
 
 // Fix Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -196,46 +196,36 @@ function ViewTrip() {
     else if (delta < -50) setCurrentImageIdx((prev) => (prev - 1 + heroImages.length) % heroImages.length);
   };
 
-  // -------------------- PDF DOWNLOAD --------------------
-  const downloadPDF = async () => {
-    const el = document.getElementById('pdf-layout');
-    if (!el) return;
-
-    const allElements = el.querySelectorAll('*');
-    const originalColors = [];
-    allElements.forEach((el, idx) => { originalColors[idx] = el.style.color; el.style.color = 'black'; });
-
-    el.style.position = 'absolute';
-    el.style.left = '-9999px';
-    el.style.display = 'block';
-
-    const canvas = await html2canvas(el, { scale: 2 });
-
-    allElements.forEach((el, idx) => { el.style.color = originalColors[idx]; });
-    el.style.display = 'none';
-    el.style.position = '';
-    el.style.left = '';
-
-    const imgData = canvas.toDataURL('');
+  // -------------------- CLEAN PDF DOWNLOAD USING jsPDF + autoTable --------------------
+  const downloadPDF = () => {
+    if (!itinerary.length) return;
     const pdf = new jsPDF('p', 'pt', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const margin = 20;
-    const usableWidth = pdfWidth - margin * 2;
-    const imgWidth = usableWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    let heightLeft = imgHeight;
-    let position = 0;
-    pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
-    heightLeft -= pdfHeight - margin * 2;
+    pdf.setFontSize(18);
+    pdf.text(`✈️ ${destination}`, 40, 40);
+    pdf.setFontSize(12);
+    pdf.text('Wander AI – Smart Travel Itinerary', 40, 60);
 
-    while (heightLeft > 0) {
-      pdf.addPage();
-      position = imgHeight - heightLeft;
-      pdf.addImage(imgData, 'PNG', margin, -position + margin, imgWidth, imgHeight);
-      heightLeft -= pdfHeight - margin * 2;
-    }
+    let startY = 80;
+
+    itinerary.forEach((day) => {
+      pdf.setFontSize(14);
+      pdf.setTextColor(30, 144, 255);
+      pdf.text(`Day ${day.day}`, 40, startY);
+      const rows = day.plan.map((p) => [p.placeName, p.placeDetails, p.timeToTravel]);
+
+      autoTable(pdf, {
+        startY: startY + 10,
+        head: [['Place', 'Details', 'Time']],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [30, 144, 255], textColor: 255 },
+        margin: { left: 40, right: 40 },
+      });
+
+      startY = pdf.lastAutoTable.finalY + 20;
+    });
 
     const safeName = destination.trim().replace(/[\/\\:*?"<>|]/g, '') || 'My Trip';
     pdf.save(`${safeName} Trip.pdf`);
@@ -307,26 +297,6 @@ function ViewTrip() {
       <InfoSection trip={tripData} />
       <Hotels trip={tripData} />
       <PlacesToVisit trip={memoizedTrip} />
-
-      {/* HIDDEN PDF LAYOUT */}
-      <div id="pdf-layout" className="p-8" style={{ display: 'none', width: '800px' }}>
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg mb-6">
-          <h1 className="text-3xl font-bold">✈️ {destination}</h1>
-          <p className="opacity-90">Wander AI – Smart Travel Itinerary</p>
-        </div>
-        {itinerary.map((day) => (
-          <div key={day.day} className="mb-4 bg-white rounded-lg shadow p-4">
-            <h2 className="text-xl font-semibold text-blue-600 mb-2">Day {day.day}</h2>
-            {day.plan.map((p, i) => (
-              <div key={i} className="mb-2">
-                <p className="font-medium">📍 {p.placeName}</p>
-                <p className="text-gray-600 text-sm">{p.placeDetails}</p>
-                <p className="text-xs text-gray-500">⏱ {p.timeToTravel}</p>
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
