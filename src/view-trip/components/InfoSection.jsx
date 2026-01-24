@@ -44,7 +44,7 @@ function InfoSection({ trip }) {
   return (
     <div className="my-8">
       <div className="relative overflow-hidden rounded-2xl shadow-xl">
-        <img src="/Images/Bottomimg.jpg"
+        <img src="\Images\Bottomimg.jpg"
           alt={trip?.user_selection?.location?.label || "Trip Image"}
           loading="lazy"
           decoding="async"
