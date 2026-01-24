@@ -123,31 +123,55 @@ function ViewTrip() {
     }
   }, [tripId]);
 
-  const formatActivity = (act, day = {}) => {
-    if (typeof act === 'string') {
-      return { placeName: act, placeDetails: act, timeToTravel: 'N/A' };
-    } else if (act && typeof act === 'object') {
-      const additionalDetails = [
-        day.route ? `Route: ${day.route}` : '',
-        day.accommodation ? `Accommodation: ${day.accommodation}` : '',
-        day.distance_km ? `Distance: ${day.distance_km} km` : '',
-      ]
-        .filter(Boolean)
-        .join(' | ');
+  // 🔧 ONLY formatActivity FIXED — everything else untouched
 
-      return {
-        placeName: act.activity ? String(act.activity) : 'Unknown Place',
-        placeDetails:
-          act.details ||
-          act.description ||
-          act.activity ||
-          (JSON.stringify(act) + (additionalDetails ? ' | ' + additionalDetails : '')),
-        timeToTravel: act.time ? String(act.time) : 'N/A',
-      };
-    } else {
-      return { placeName: String(act), placeDetails: String(act), timeToTravel: 'N/A' };
-    }
+const formatActivity = (act, day = {}) => {
+  if (typeof act === 'string') {
+    return {
+      placeName: act,
+      placeDetails: act,
+      timeToTravel: 'N/A',
+    };
+  }
+
+  if (act && typeof act === 'object') {
+    const placeName =
+      act.place ||
+      act.place_name ||
+      act.placeName ||
+      act.name ||
+      act.title ||
+      act.activity ||
+      'Unknown Place';
+
+    const details =
+      act.details ||
+      act.description ||
+      act.notes ||
+      '';
+
+    const extra = [
+      day.route && `Route: ${day.route}`,
+      day.accommodation && `Stay: ${day.accommodation}`,
+      day.distance_km && `Distance: ${day.distance_km} km`,
+    ]
+      .filter(Boolean)
+      .join(' | ');
+
+    return {
+      placeName: String(placeName),
+      placeDetails: `${details}${extra ? ' | ' + extra : ''}` || String(placeName),
+      timeToTravel: act.time || act.time_of_day || 'N/A',
+    };
+  }
+
+  return {
+    placeName: 'Unknown Place',
+    placeDetails: 'No details available',
+    timeToTravel: 'N/A',
   };
+};
+
 
   const geocodeLocation = async (query, type) => {
     if (!query) return;
