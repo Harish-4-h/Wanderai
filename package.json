@@ -71,15 +71,9 @@
     "autoprefixer": "^10.4.19",
     "babel-jest": "^30.0.5",
     "cypress": "^14.5.2",
-<<<<<<< HEAD
-    "eslint": "^8.57.0",
-    "eslint-plugin-react": "^7.34.2",
-    "eslint-plugin-react-hooks": "^4.6.2",
-=======
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.34.2",
     "eslint-plugin-react-hooks": "^7.0.1",
->>>>>>> 01710c8 (Initial commit – WanderAI project setup)
     "eslint-plugin-react-refresh": "^0.4.7",
     "jest": "^30.0.4",
     "jest-environment-jsdom": "^30.0.5",
