@@ -93,8 +93,8 @@ This is an academic project. For questions or collaboration:
 
 ## 📸 Screenshots
 
-![Home](public/Images/Home.png)
-![Main](public/Images/Main.png)
-![Trips](public/Images/Trips.png)
-![Past-Trips](puclic/Images/Past-Trips.png)
+![Home](public/Images/1.png)
+![Main](public/Images/4.png)
+![Trips](public/Images/9.png)
+![Past-Trips](public/Images/6.png)
 ![Map](public/Images/Map.png)
