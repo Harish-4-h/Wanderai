@@ -410,39 +410,69 @@ const formatActivity = (act, day = {}) => {
         </div>
       )}
 
-      {/* ITINERARY */}
-      {itinerary.length > 0 && (
-        <div id="itinerary-section" className="mt-8">
-          <h2 className="text-2xl font-bold mb-4">Itinerary 🗓️</h2>
-          <div className="space-y-4">
-            {itinerary.map((day, i) => (
-              <div key={`day-${i}`} className="p-4 border rounded-lg shadow-sm bg-white">
-                <h3 className="font-semibold text-lg">Day {day.day}</h3>
-                {day.plan.length > 0 ? (
-                  day.plan.map((place) => (
-                    <div
-                      key={`${place.placeName}-${place.timeToTravel}`}
-                      className="mt-2"
-                    >
-                      <strong>{place.placeName}</strong>
-                      <p className="text-gray-700">{place.placeDetails}</p>
-                      <p className="text-gray-500 text-sm">
-                        Time: {place.timeToTravel}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 mt-2">
-                    No places available for this day.
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+{/* ITINERARY */}
+{itinerary.length > 0 && (
+  <div id="itinerary-section" className="mt-8">
+    <h2 className="text-2xl font-bold mb-4">Itinerary 🗓️</h2>
 
-      {/* COMPONENTS */}
+    {/* MOBILE SLIDER */}
+    <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 md:hidden">
+      {itinerary.map((day, i) => (
+        <div
+          key={`day-${i}`}
+          className="min-w-[85%] snap-center p-4 border rounded-lg shadow-sm bg-white flex-shrink-0"
+        >
+          <h3 className="font-semibold text-lg">Day {day.day}</h3>
+
+          {day.plan.length > 0 ? (
+            day.plan.map((place, idx) => (
+              <div key={`${place.placeName}-${idx}`} className="mt-2">
+                <strong>{place.placeName}</strong>
+                <p className="text-gray-700">{place.placeDetails}</p>
+                <p className="text-gray-500 text-sm">
+                  Time: {place.timeToTravel}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 mt-2">
+              No places available for this day.
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+
+    {/* DESKTOP NORMAL VIEW */}
+    <div className="hidden md:block space-y-4">
+      {itinerary.map((day, i) => (
+        <div
+          key={`day-${i}`}
+          className="p-4 border rounded-lg shadow-sm bg-white"
+        >
+          <h3 className="font-semibold text-lg">Day {day.day}</h3>
+
+          {day.plan.length > 0 ? (
+            day.plan.map((place, idx) => (
+              <div key={`${place.placeName}-${idx}`} className="mt-2">
+                <strong>{place.placeName}</strong>
+                <p className="text-gray-700">{place.placeDetails}</p>
+                <p className="text-gray-500 text-sm">
+                  Time: {place.timeToTravel}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 mt-2">
+              No places available for this day.
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+  {/* COMPONENTS */}
       <InfoSection trip={tripData} />
       <Hotels trip={tripData} />
       <PlacesToVisit trip={memoizedTrip} />
