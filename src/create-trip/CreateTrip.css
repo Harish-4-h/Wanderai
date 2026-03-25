@@ -7,6 +7,15 @@
   flex-direction: column;
   gap: 1.5rem;
 }
+.glass-dark {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+body {
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  min-height: 100vh;
+}
 
 /* ---------------------- Budget Option Styling ---------------------- */
 .budget-option {

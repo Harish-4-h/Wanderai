@@ -58,7 +58,9 @@ export default function Home() {
             .filter(Boolean)
         ),
       ];
-
+<div className="glass" style={{ padding: "20px", margin: "50px" }}>
+  Test Glass Effect
+</div>
       uniqueLocations.forEach((loc) => {
         if (!locationsCache[loc]) geocodeLocation(loc);
       });
